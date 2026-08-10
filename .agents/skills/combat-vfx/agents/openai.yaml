@@ -1,0 +1,4 @@
+interface:
+  display_name: "Combat VFX"
+  short_description: "Create readable pixel combat VFX"
+  default_prompt: "Use $combat-vfx to design readable Ashvale combat effects."

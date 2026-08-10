@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pixel Character"
+  short_description: "Create approved pixel-art characters"
+  default_prompt: "Use $pixel-character to create an Ashvale character reference."

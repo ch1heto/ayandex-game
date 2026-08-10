@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sprite Animation"
+  short_description: "Animate approved Ashvale characters"
+  default_prompt: "Use $sprite-animation to create a Phaser-tested Ashvale sprite sheet."
