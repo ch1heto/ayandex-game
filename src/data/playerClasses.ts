@@ -8,6 +8,7 @@ export type PlayerClassConfig = {
   maxHealth: number;
   attackKind: AttackKind;
   attackDamage: number;
+  attackRange: number;
   projectileSpeed?: number;
   projectileRange?: number;
 };
@@ -21,6 +22,7 @@ export const PLAYER_CLASS_CONFIGS: Record<PlayerClassId, PlayerClassConfig> = {
     maxHealth: 120,
     attackKind: 'melee',
     attackDamage: 18,
+    attackRange: 42,
   },
   archer: {
     id: 'archer',
@@ -30,6 +32,7 @@ export const PLAYER_CLASS_CONFIGS: Record<PlayerClassId, PlayerClassConfig> = {
     maxHealth: 95,
     attackKind: 'arrow',
     attackDamage: 12,
+    attackRange: 430,
     projectileSpeed: 350,
     projectileRange: 430,
   },
@@ -41,6 +44,7 @@ export const PLAYER_CLASS_CONFIGS: Record<PlayerClassId, PlayerClassConfig> = {
     maxHealth: 105,
     attackKind: 'magic',
     attackDamage: 14,
+    attackRange: 390,
     projectileSpeed: 300,
     projectileRange: 390,
   },

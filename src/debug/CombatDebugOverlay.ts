@@ -40,11 +40,14 @@ export class CombatDebugOverlay {
     this.graphics.lineStyle(1, 0x62d4a7, 0.7);
     this.collisionRects.forEach((rect) => this.graphics.strokeRect(rect.x, rect.y, rect.width, rect.height));
 
-    const playerBody = this.player.visual.body as Phaser.Physics.Arcade.Body;
-    this.graphics.lineStyle(1, 0x6ed6ff, 0.95).strokeRect(playerBody.x, playerBody.y, playerBody.width, playerBody.height);
+    const playerBody = this.player.physicsRoot.body as Phaser.Physics.Arcade.Body | null;
+    if (playerBody) {
+      this.graphics.lineStyle(1, 0x6ed6ff, 0.95).strokeRect(playerBody.x, playerBody.y, playerBody.width, playerBody.height);
+    }
 
     this.slimes.forEach((slime) => {
-      const body = slime.visual.body as Phaser.Physics.Arcade.Body;
+      const body = slime.visual.body as Phaser.Physics.Arcade.Body | null;
+      if (!body) return;
       this.graphics.lineStyle(1, 0xff7a78, 0.95).strokeRect(body.x, body.y, body.width, body.height);
       this.graphics.lineStyle(1, 0xe6d66b, 0.32).strokeCircle(slime.x, slime.y, MOSS_SLIME_CONFIG.detectionRange);
       this.graphics.lineStyle(1, 0xff9f55, 0.7).strokeCircle(slime.x, slime.y, MOSS_SLIME_CONFIG.attackRange);

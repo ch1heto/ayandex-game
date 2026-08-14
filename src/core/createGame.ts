@@ -12,7 +12,9 @@ export async function createGame(parentId: string): Promise<Phaser.Game> {
   container.addEventListener('contextmenu', (event) => event.preventDefault());
 
   const developmentScenes = import.meta.env.DEV
-    ? [(await import('../scenes/ArtPreviewScene')).ArtPreviewScene]
+    ? [
+        (await import('../scenes/SkinPreviewScene')).SkinPreviewScene,
+      ]
     : [];
 
   return new Phaser.Game({

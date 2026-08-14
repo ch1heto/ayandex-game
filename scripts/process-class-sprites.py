@@ -1,12 +1,13 @@
-"""Technical sprite-sheet normalization for the three approved generated class masters.
+"""Technical sprite-sheet normalization for approved class sources.
 
-This script does not draw or redesign pixels. It removes tiny disconnected alpha
-artifacts, maps the authored 4x9 layout to a shared 64x64 root/baseline, and emits
-runtime sheets plus the individual QA frames.
+Exact 64x64 production sheets are copied without resampling. Legacy 4x9 masters
+remain supported for Mage and backward compatibility. Selective class processing
+prevents an art-only Warrior/Archer pass from rewriting locked Mage assets.
 """
 
 from __future__ import annotations
 
+import argparse
 from collections import deque
 from pathlib import Path
 
@@ -23,6 +24,7 @@ ROOT_X = 32
 BASELINE_Y = 60
 SOURCE_SCALE = 0.32
 ROWS = ("down", "left", "up", "right")
+CHARACTERS = ("warrior", "archer", "mage")
 STATE_COLUMNS = {
     "idle": (0,),
     "walk": (1, 2, 3, 4),
@@ -175,6 +177,29 @@ def extract_cell(master: Image.Image, row: int, column: int) -> Image.Image:
     return master.crop((left, top, right, bottom))
 
 
+def save_if_pixels_changed(image: Image.Image, path: Path) -> None:
+    """Avoid rewriting a locked asset when decoded RGBA pixels are unchanged."""
+    if path.exists():
+        current = Image.open(path).convert("RGBA")
+        expected = image.convert("RGBA")
+        if current.size == expected.size and visible_rgba_bytes(current) == visible_rgba_bytes(expected):
+            return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path, optimize=True)
+
+
+def visible_rgba_bytes(image: Image.Image) -> bytes:
+    """Normalize irrelevant RGB data beneath alpha=0 before comparisons."""
+    normalized = image.convert("RGBA").copy()
+    pixels = normalized.load()
+    for y in range(normalized.height):
+        for x in range(normalized.width):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha == 0:
+                pixels[x, y] = (0, 0, 0, 0)
+    return normalized.tobytes()
+
+
 def save_sheet(character: str, state: str, frames_by_row: list[list[Image.Image]]) -> None:
     columns = len(frames_by_row[0])
     sheet = Image.new("RGBA", (FRAME_SIZE * columns, FRAME_SIZE * len(ROWS)), (0, 0, 0, 0))
@@ -184,14 +209,47 @@ def save_sheet(character: str, state: str, frames_by_row: list[list[Image.Image]
         direction_root.mkdir(parents=True, exist_ok=True)
         for column, frame in enumerate(frames_by_row[row]):
             sheet.alpha_composite(frame, (column * FRAME_SIZE, row * FRAME_SIZE))
-            frame.save(direction_root / f"frame-{column:02d}.png", optimize=True)
+            save_if_pixels_changed(frame, direction_root / f"frame-{column:02d}.png")
 
     output_dir = OUTPUT_ROOT / character
     output_dir.mkdir(parents=True, exist_ok=True)
-    sheet.save(output_dir / f"{state}.png", optimize=True)
+    save_if_pixels_changed(sheet, output_dir / f"{state}.png")
+
+
+def process_exact_character(character: str, production_root: Path) -> None:
+    for state, columns in STATE_COLUMNS.items():
+        source_path = production_root / f"{state}.png"
+        sheet = Image.open(source_path).convert("RGBA")
+        expected_size = (FRAME_SIZE * len(columns), FRAME_SIZE * len(ROWS))
+        if sheet.size != expected_size:
+            raise ValueError(f"Unexpected exact {character} {state} size: {sheet.size}; expected {expected_size}")
+        alpha_histogram = sheet.getchannel("A").histogram()
+        non_binary = [value for value, count in enumerate(alpha_histogram) if count and value not in (0, 255)]
+        if non_binary:
+            raise ValueError(f"Non-binary alpha in exact {character} {state}: {non_binary}")
+        frames_by_row = [
+            [
+                sheet.crop(
+                    (
+                        column * FRAME_SIZE,
+                        row * FRAME_SIZE,
+                        (column + 1) * FRAME_SIZE,
+                        (row + 1) * FRAME_SIZE,
+                    )
+                )
+                for column in range(len(columns))
+            ]
+            for row in range(len(ROWS))
+        ]
+        save_sheet(character, state, frames_by_row)
 
 
 def process_character(character: str) -> None:
+    production_root = SOURCE_ROOT / "production" / character
+    if all((production_root / f"{state}.png").is_file() for state in STATE_COLUMNS):
+        process_exact_character(character, production_root)
+        return
+
     master_path = SOURCE_ROOT / f"{character}-master-alpha.png"
     master = remove_key_fringe(Image.open(master_path).convert("RGBA"), character)
     if master.size != (1536, 1024):
@@ -229,12 +287,26 @@ def process_projectiles() -> None:
     save_projectile(master.crop((midpoint, 0, master.width, master.height)), "magic-bolt", (16, 12), 14)
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--classes",
+        nargs="+",
+        choices=CHARACTERS,
+        help="Process only the listed classes; projectiles are left untouched.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
-    for character in ("warrior", "archer", "mage"):
+    args = parse_args()
+    selected = tuple(args.classes) if args.classes else CHARACTERS
+    for character in selected:
         process_character(character)
         print(f"Processed {character}")
-    process_projectiles()
-    print("Processed projectiles")
+    if args.classes is None:
+        process_projectiles()
+        print("Processed projectiles")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,361 @@
+{
+  "summary": {
+    "errors": 0,
+    "diagnostic_warnings": 20
+  },
+  "assets": [
+    {
+      "path": "assets/enemies/moss-slime/attack.png",
+      "size": [
+        256,
+        64
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 1
+    },
+    {
+      "path": "assets/enemies/moss-slime/death.png",
+      "size": [
+        256,
+        64
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 1
+    },
+    {
+      "path": "assets/enemies/moss-slime/hurt.png",
+      "size": [
+        128,
+        64
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 1
+    },
+    {
+      "path": "assets/enemies/moss-slime/idle.png",
+      "size": [
+        256,
+        64
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 2
+    },
+    {
+      "path": "assets/enemies/moss-slime/move.png",
+      "size": [
+        256,
+        64
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 7
+    },
+    {
+      "path": "assets/environments/twilight-glade/leaf-particle.png",
+      "size": [
+        5,
+        4
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/bush-a.png",
+      "size": [
+        59,
+        56
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 9
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/bush-b.png",
+      "size": [
+        55,
+        56
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 9
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/fern.png",
+      "size": [
+        26,
+        36
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 18
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/flowers-gold.png",
+      "size": [
+        28,
+        23
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 11
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/flowers-violet.png",
+      "size": [
+        26,
+        28
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 36,
+      "suspicious_green_edge": 7
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/flowers-white.png",
+      "size": [
+        28,
+        22
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 3
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/pond.png",
+      "size": [
+        121,
+        128
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/rock-a.png",
+      "size": [
+        72,
+        56
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 2
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/rock-b.png",
+      "size": [
+        72,
+        46
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/sprout.png",
+      "size": [
+        24,
+        24
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 10
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/stump.png",
+      "size": [
+        56,
+        44
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 5
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/tree-a.png",
+      "size": [
+        121,
+        144
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/environments/twilight-glade/props/tree-b.png",
+      "size": [
+        128,
+        135
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 2
+    },
+    {
+      "path": "assets/environments/twilight-glade/tiles/dirt-1.png",
+      "size": [
+        32,
+        32
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/environments/twilight-glade/tiles/dirt-2.png",
+      "size": [
+        32,
+        32
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/environments/twilight-glade/tiles/grass-1.png",
+      "size": [
+        32,
+        32
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 8
+    },
+    {
+      "path": "assets/environments/twilight-glade/tiles/grass-2.png",
+      "size": [
+        32,
+        32
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 21
+    },
+    {
+      "path": "assets/environments/twilight-glade/tiles/grass-3.png",
+      "size": [
+        32,
+        32
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 12
+    },
+    {
+      "path": "assets/environments/twilight-glade/tiles/grass-4.png",
+      "size": [
+        32,
+        32
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 11
+    },
+    {
+      "path": "assets/items/coin.png",
+      "size": [
+        64,
+        16
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/projectiles/arrow.png",
+      "size": [
+        24,
+        12
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/projectiles/magic-bolt.png",
+      "size": [
+        16,
+        12
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 24,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/ui/hud/coin-icon.png",
+      "size": [
+        18,
+        18
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/ui/hud/health-frame.png",
+      "size": [
+        128,
+        24
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/ui/hud/heart-empty.png",
+      "size": [
+        18,
+        18
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    },
+    {
+      "path": "assets/ui/hud/heart-full.png",
+      "size": [
+        18,
+        18
+      ],
+      "partial_alpha": 0,
+      "hidden_rgb": 0,
+      "suspicious_magenta_edge": 0,
+      "suspicious_green_edge": 0
+    }
+  ],
+  "visual_review_required": true
+}

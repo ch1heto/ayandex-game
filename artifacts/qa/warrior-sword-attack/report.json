@@ -1,0 +1,389 @@
+{
+  "contract": {
+    "frame": 64,
+    "rootX": 32,
+    "baselineY": 60
+  },
+  "assets": {
+    "attack-body": {
+      "size": [
+        64,
+        256
+      ],
+      "partialAlpha": 0,
+      "hiddenRgb": 0,
+      "purplePixels": 0
+    },
+    "attack-hand": {
+      "size": [
+        64,
+        256
+      ],
+      "partialAlpha": 0,
+      "hiddenRgb": 0,
+      "purplePixels": 0
+    },
+    "sword-attack": {
+      "size": [
+        384,
+        256
+      ],
+      "partialAlpha": 0,
+      "hiddenRgb": 0,
+      "purplePixels": 0
+    }
+  },
+  "frames": {
+    "down": [
+      {
+        "phase": 0,
+        "bbox": [
+          7,
+          12,
+          50,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          1074
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 1,
+        "bbox": [
+          18,
+          12,
+          50,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          1053
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 2,
+        "bbox": [
+          17,
+          12,
+          50,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          964
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 3,
+        "bbox": [
+          14,
+          12,
+          50,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          962
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 4,
+        "bbox": [
+          14,
+          12,
+          50,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          964
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 5,
+        "bbox": [
+          15,
+          12,
+          50,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          978
+        ],
+        "detachedPixels": 0
+      }
+    ],
+    "left": [
+      {
+        "phase": 0,
+        "bbox": [
+          24,
+          12,
+          46,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          627
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 1,
+        "bbox": [
+          19,
+          12,
+          46,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          631,
+          47
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 2,
+        "bbox": [
+          12,
+          12,
+          46,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          650,
+          47
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 3,
+        "bbox": [
+          9,
+          12,
+          46,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          656,
+          47
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 4,
+        "bbox": [
+          11,
+          12,
+          46,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          674,
+          47
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 5,
+        "bbox": [
+          14,
+          12,
+          46,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          678,
+          47
+        ],
+        "detachedPixels": 0
+      }
+    ],
+    "up": [
+      {
+        "phase": 0,
+        "bbox": [
+          13,
+          11,
+          49,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          929
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 1,
+        "bbox": [
+          13,
+          11,
+          47,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          939
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 2,
+        "bbox": [
+          13,
+          11,
+          45,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          990
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 3,
+        "bbox": [
+          13,
+          11,
+          48,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          1046
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 4,
+        "bbox": [
+          13,
+          11,
+          57,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          1042
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 5,
+        "bbox": [
+          13,
+          11,
+          64,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          1037
+        ],
+        "detachedPixels": 0
+      }
+    ],
+    "right": [
+      {
+        "phase": 0,
+        "bbox": [
+          19,
+          12,
+          45,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          808
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 1,
+        "bbox": [
+          19,
+          12,
+          56,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          839
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 2,
+        "bbox": [
+          19,
+          12,
+          62,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          827
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 3,
+        "bbox": [
+          19,
+          12,
+          64,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          820
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 4,
+        "bbox": [
+          19,
+          12,
+          62,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          826
+        ],
+        "detachedPixels": 0
+      },
+      {
+        "phase": 5,
+        "bbox": [
+          19,
+          12,
+          59,
+          60
+        ],
+        "bottom": 59,
+        "components": [
+          823
+        ],
+        "detachedPixels": 0
+      }
+    ]
+  },
+  "failures": [],
+  "passed": true
+}

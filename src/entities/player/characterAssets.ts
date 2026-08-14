@@ -1,79 +1,60 @@
 import Phaser from 'phaser';
 
-import archerAttackUrl from '../../../assets/characters/classes/archer/attack.png';
-import archerIdleUrl from '../../../assets/characters/classes/archer/idle.png';
-import archerWalkUrl from '../../../assets/characters/classes/archer/walk.png';
-import mageAttackUrl from '../../../assets/characters/classes/mage/attack.png';
-import mageIdleUrl from '../../../assets/characters/classes/mage/idle.png';
-import mageWalkUrl from '../../../assets/characters/classes/mage/walk.png';
-import warriorAttackUrl from '../../../assets/characters/classes/warrior/attack.png';
-import warriorIdleUrl from '../../../assets/characters/classes/warrior/idle.png';
-import warriorWalkUrl from '../../../assets/characters/classes/warrior/walk.png';
 import arrowUrl from '../../../assets/projectiles/arrow.png';
 import magicBoltUrl from '../../../assets/projectiles/magic-bolt.png';
-import { DIRECTIONS, PLAYER_CLASS_IDS, type Direction, type PlayerClassId } from './playerTypes';
+import { GAMEPLAY_SKINS_BY_CLASS, getCharacterSkin, type SkinAnimationState } from '../../data/characterSkins';
+import { DIRECTIONS, type Direction, type PlayerClassId } from './playerTypes';
 
-export const CHARACTER_FRAME_SIZE = 64;
-export const CHARACTER_ROOT_Y = 60 / CHARACTER_FRAME_SIZE;
 export const DIRECTION_ROW: Record<Direction, number> = { down: 0, left: 1, up: 2, right: 3 };
 
-const CHARACTER_URLS: Record<PlayerClassId, { idle: string; walk: string; attack: string }> = {
-  warrior: { idle: warriorIdleUrl, walk: warriorWalkUrl, attack: warriorAttackUrl },
-  archer: { idle: archerIdleUrl, walk: archerWalkUrl, attack: archerAttackUrl },
-  mage: { idle: mageIdleUrl, walk: mageWalkUrl, attack: mageAttackUrl },
-};
-
-export function idleTextureKey(classId: PlayerClassId): string {
-  return `${classId}-idle`;
+export function characterTextureKey(skinId: string, state: SkinAnimationState): string {
+  return `character-${skinId}-${state}`;
 }
 
-export function walkAnimationKey(classId: PlayerClassId, direction: Direction): string {
-  return `${classId}-walk-${direction}`;
-}
-
-export function attackAnimationKey(classId: PlayerClassId, direction: Direction): string {
-  return `${classId}-attack-${direction}`;
-}
-
-export function idleFrame(direction: Direction): number {
-  return DIRECTION_ROW[direction];
+export function characterAnimationKey(skinId: string, state: 'walk' | 'attack', direction: Direction): string {
+  return `character-${skinId}-${state}-${direction}`;
 }
 
 export function preloadCharacterAssets(scene: Phaser.Scene): void {
-  PLAYER_CLASS_IDS.forEach((classId) => {
-    const urls = CHARACTER_URLS[classId];
-    scene.load.spritesheet(idleTextureKey(classId), urls.idle, { frameWidth: CHARACTER_FRAME_SIZE, frameHeight: CHARACTER_FRAME_SIZE });
-    scene.load.spritesheet(`${classId}-walk`, urls.walk, { frameWidth: CHARACTER_FRAME_SIZE, frameHeight: CHARACTER_FRAME_SIZE });
-    scene.load.spritesheet(`${classId}-attack`, urls.attack, { frameWidth: CHARACTER_FRAME_SIZE, frameHeight: CHARACTER_FRAME_SIZE });
+  Object.values(GAMEPLAY_SKINS_BY_CLASS).flat().forEach((skin) => {
+    (Object.keys(skin.animations) as SkinAnimationState[]).forEach((state) => {
+      const animation = skin.animations[state];
+      scene.load.spritesheet(characterTextureKey(skin.id, state), animation.url, {
+        frameWidth: animation.frameWidth,
+        frameHeight: animation.frameHeight,
+      });
+    });
   });
   scene.load.image('projectile-arrow', arrowUrl);
   scene.load.image('projectile-magic', magicBoltUrl);
 }
 
 export function registerCharacterAnimations(scene: Phaser.Scene): void {
-  PLAYER_CLASS_IDS.forEach((classId) => {
-    DIRECTIONS.forEach((direction) => {
-      const row = DIRECTION_ROW[direction];
-      createAnimation(scene, walkAnimationKey(classId, direction), `${classId}-walk`, row * 4, 4, 9, -1);
-      createAnimation(scene, attackAnimationKey(classId, direction), `${classId}-attack`, row * 4, 4, 12, 0);
+  Object.values(GAMEPLAY_SKINS_BY_CLASS).flat().forEach((skin) => {
+    const directions: readonly Direction[] = skin.compatibility === 'SIDE_VIEW_ONLY' ? ['left', 'right'] : DIRECTIONS;
+    directions.forEach((direction) => {
+      const walk = skin.animations.walk;
+      const attack = skin.animations.attack;
+      const walkRow = walk.directionRows?.[direction];
+      const attackRow = attack.directionRows?.[direction];
+      const resolvedWalkRow = walkRow ?? 0;
+      const resolvedAttackRow = attackRow ?? 0;
+      createAnimation(scene, characterAnimationKey(skin.id, 'walk', direction), characterTextureKey(skin.id, 'walk'), resolvedWalkRow * walk.frames, walk.frames, walk.frameRate, -1);
+      createAnimation(scene, characterAnimationKey(skin.id, 'attack', direction), characterTextureKey(skin.id, 'attack'), resolvedAttackRow * attack.frames, attack.frames, attack.frameRate, 0);
     });
   });
 }
 
-function createAnimation(
-  scene: Phaser.Scene,
-  key: string,
-  texture: string,
-  start: number,
-  count: number,
-  frameRate: number,
-  repeat: number,
-): void {
+export function idleFrameForSkin(skinId: string, direction: Direction): number {
+  const skin = getCharacterSkin(skinId);
+  return (skin.animations.idle.directionRows?.[direction] ?? 0) * skin.animations.idle.frames;
+}
+
+export function firstGameplaySkin(classId: PlayerClassId): string | undefined {
+  return GAMEPLAY_SKINS_BY_CLASS[classId][0]?.id;
+}
+
+function createAnimation(scene: Phaser.Scene, key: string, texture: string, start: number, count: number, frameRate: number, repeat: number): void {
   if (scene.anims.exists(key)) return;
-  scene.anims.create({
-    key,
-    frames: scene.anims.generateFrameNumbers(texture, { start, end: start + count - 1 }),
-    frameRate,
-    repeat,
-  });
+  scene.anims.create({ key, frames: scene.anims.generateFrameNumbers(texture, { start, end: start + count - 1 }), frameRate, repeat });
 }

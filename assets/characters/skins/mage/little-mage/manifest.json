@@ -1,0 +1,57 @@
+{
+  "id": "little-mage",
+  "class": "mage",
+  "displayName": "Little Mage",
+  "sourcePack": "Little Mage1-1.zip",
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "displayScale": 2.0,
+  "origin": [
+    0.4375,
+    1.0
+  ],
+  "baseline": 16,
+  "supportedDirections": [
+    "left",
+    "right"
+  ],
+  "animations": {
+    "idle": {
+      "sheet": "preview-idle.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "frames": 6,
+      "frameRate": 8,
+      "rootX": 7,
+      "baseline": 16
+    },
+    "walk": {
+      "sheet": "preview-walk.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "frames": 6,
+      "frameRate": 8,
+      "rootX": 7,
+      "baseline": 16
+    },
+    "attack": {
+      "sheet": "preview-attack.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "frames": 6,
+      "frameRate": 10,
+      "rootX": 11,
+      "baseline": 32
+    }
+  },
+  "compatibility": "SIDE_VIEW_ONLY",
+  "runtimeStatus": "GAMEPLAY",
+  "sourceFilesPreserved": true,
+  "documentationFiles": [
+    "raw/Little Mage/CHANGELOG.txt",
+    "raw/Little Mage/READ ME.txt"
+  ],
+  "notes": "DEV gameplay enabled. Vertical movement reuses the last horizontal animation; no up/down frames were invented.",
+  "visualCenterX": 7,
+  "attackImpactFrame": 2
+}

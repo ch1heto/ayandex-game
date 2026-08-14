@@ -17,4 +17,8 @@ export type AttackImpact = {
   targetY: number;
   rootX: number;
   rootY: number;
+  releaseX?: number;
+  releaseY?: number;
+  meleePhase?: number;
+  skillId?: string;
 };

@@ -5,7 +5,6 @@ import bushAUrl from '../../assets/environments/twilight-glade/props/bush-a.png'
 import bushBUrl from '../../assets/environments/twilight-glade/props/bush-b.png';
 import fernUrl from '../../assets/environments/twilight-glade/props/fern.png';
 import flowersGoldUrl from '../../assets/environments/twilight-glade/props/flowers-gold.png';
-import flowersVioletUrl from '../../assets/environments/twilight-glade/props/flowers-violet.png';
 import flowersWhiteUrl from '../../assets/environments/twilight-glade/props/flowers-white.png';
 import leafParticleUrl from '../../assets/environments/twilight-glade/leaf-particle.png';
 import pondUrl from '../../assets/environments/twilight-glade/props/pond.png';
@@ -26,7 +25,6 @@ const PROP_URLS = {
   'glade-bush-b': bushBUrl,
   'glade-fern': fernUrl,
   'glade-flowers-gold': flowersGoldUrl,
-  'glade-flowers-violet': flowersVioletUrl,
   'glade-flowers-white': flowersWhiteUrl,
   'glade-pond': pondUrl,
   'glade-rock-a': rockAUrl,
@@ -43,7 +41,6 @@ const PROP_TEXTURE_KEYS: Record<string, keyof typeof PROP_URLS> = {
   'bush-b': 'glade-bush-b',
   fern: 'glade-fern',
   'flowers-gold': 'glade-flowers-gold',
-  'flowers-violet': 'glade-flowers-violet',
   'flowers-white': 'glade-flowers-white',
   pond: 'glade-pond',
   'rock-a': 'glade-rock-a',
@@ -83,6 +80,9 @@ export function createTwilightGlade(scene: Phaser.Scene): TwilightGladeRuntime {
   const ground = map.createLayer('Ground', tileset, 0, 0);
   const paths = map.createLayer('Paths', tileset, 0, 0);
   if (!ground || !paths) throw new Error('Twilight Glade ground layers are missing.');
+  [TILESET_KEY, ...Object.keys(PROP_URLS)].forEach((key) => {
+    scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+  });
   ground.setDepth(0);
   paths.setDepth(1);
 
@@ -128,8 +128,8 @@ function createProp(scene: Phaser.Scene, object: Phaser.Types.Tilemaps.TiledObje
   const textureName = readStringProperty(object, 'texture');
   const textureKey = textureName ? PROP_TEXTURE_KEYS[textureName] : undefined;
   if (!textureKey) return;
-  const x = object.x ?? 0;
-  const y = object.y ?? 0;
+  const x = Math.round(object.x ?? 0);
+  const y = Math.round(object.y ?? 0);
   const ground = readBooleanProperty(object, 'ground');
   const image = scene.add.image(x, y, textureKey);
   if (ground) {

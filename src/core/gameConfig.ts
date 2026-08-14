@@ -5,15 +5,16 @@ import { PreloadScene } from '../scenes/PreloadScene';
 import { MainMenuScene } from '../scenes/MainMenuScene';
 import { GameScene } from '../scenes/GameScene';
 import { UIScene } from '../scenes/UIScene';
+import { CharacterSelectScene } from '../scenes/CharacterSelectScene';
 
-export const LOGICAL_WIDTH = 640;
-export const LOGICAL_HEIGHT = 360;
-export const baseScenes = [BootScene, PreloadScene, MainMenuScene, GameScene, UIScene];
+const initialViewportWidth = Math.max(640, window.innerWidth);
+const initialViewportHeight = Math.max(360, window.innerHeight);
+export const baseScenes = [BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, UIScene];
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
-  width: LOGICAL_WIDTH,
-  height: LOGICAL_HEIGHT,
+  width: initialViewportWidth,
+  height: initialViewportHeight,
   parent: 'app',
   backgroundColor: '#10151e',
   pixelArt: true,
@@ -27,10 +28,10 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     roundPixels: true,
   },
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: LOGICAL_WIDTH,
-    height: LOGICAL_HEIGHT,
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.NO_CENTER,
+    width: '100%',
+    height: '100%',
   },
   physics: {
     default: 'arcade',

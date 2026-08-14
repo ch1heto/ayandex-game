@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 from collections import deque
+import colorsys
 from pathlib import Path
 from typing import Iterable
 
 from PIL import Image
+
+from asset_alpha import (
+    clean_chroma_source,
+    despill_transparent_edges,
+    normalize_transparent_rgb,
+    replace_strong_key_artifacts,
+    remove_strong_key_edge_artifacts,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,33 +28,7 @@ RESAMPLE = Image.Resampling.NEAREST
 
 
 def keyed(path: Path, key: tuple[int, int, int]) -> Image.Image:
-    image = Image.open(path).convert("RGBA")
-    pixels = image.load()
-    for y in range(image.height):
-        for x in range(image.width):
-            red, green, blue, _ = pixels[x, y]
-            distance = abs(red - key[0]) + abs(green - key[1]) + abs(blue - key[2])
-            # GPT Image keeps the requested background visually flat but may
-            # introduce small colour drift around the catalog cells. These
-            # broad chroma predicates remove that drift while staying outside
-            # the actual forest/slime and gold/red/navy UI palettes.
-            is_magenta_key = (
-                key == (255, 0, 255)
-                and red > 145
-                and blue > 90
-                and green < 125
-                and red > green * 1.45
-                and blue > green * 1.15
-            )
-            is_green_key = (
-                key == (0, 255, 0)
-                and green > 135
-                and green > red * 1.22
-                and green > blue * 1.22
-            )
-            alpha = 0 if distance < 92 or is_magenta_key or is_green_key else 255
-            pixels[x, y] = (0, 0, 0, 0) if alpha == 0 else (red, green, blue, 255)
-    return image
+    return clean_chroma_source(Image.open(path).convert("RGBA"), key)
 
 
 def content_crop(image: Image.Image, rect: tuple[int, int, int, int]) -> Image.Image:
@@ -102,6 +85,49 @@ def fit_nearest(image: Image.Image, width: int, height: int) -> Image.Image:
     return image.resize(target, RESAMPLE)
 
 
+def neutralize_environment_purple_edge(image: Image.Image) -> Image.Image:
+    """Replace purple board residue in props whose approved palette has no purple."""
+    source = normalize_transparent_rgb(image)
+    pixels = source.load()
+    candidates: set[tuple[int, int]] = set()
+    for y in range(source.height):
+        for x in range(source.width):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha == 0:
+                continue
+            hue, saturation, value = colorsys.rgb_to_hsv(red / 255, green / 255, blue / 255)
+            if 250 <= hue * 360 <= 350 and saturation >= 0.18 and value >= 0.08:
+                candidates.add((x, y))
+    result = source.copy()
+    output = result.load()
+    for x, y in candidates:
+        replacement = None
+        source_luma = 0.299 * pixels[x, y][0] + 0.587 * pixels[x, y][1] + 0.114 * pixels[x, y][2]
+        for radius in range(1, 25):
+            neighbours = [
+                (next_x, next_y)
+                for next_y in range(max(0, y - radius), min(source.height, y + radius + 1))
+                for next_x in range(max(0, x - radius), min(source.width, x + radius + 1))
+                if abs(next_x - x) + abs(next_y - y) == radius
+                and pixels[next_x, next_y][3] == 255
+                and (next_x, next_y) not in candidates
+            ]
+            if neighbours:
+                next_x, next_y = min(
+                    neighbours,
+                    key=lambda point: abs(
+                        0.299 * pixels[point[0], point[1]][0]
+                        + 0.587 * pixels[point[0], point[1]][1]
+                        + 0.114 * pixels[point[0], point[1]][2]
+                        - source_luma
+                    ),
+                )
+                replacement = pixels[next_x, next_y]
+                break
+        output[x, y] = replacement if replacement is not None else (0, 0, 0, 0)
+    return normalize_transparent_rgb(result)
+
+
 def place_on_canvas(
     image: Image.Image,
     size: tuple[int, int],
@@ -118,7 +144,7 @@ def place_on_canvas(
 
 def save(image: Image.Image, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    image.save(path, optimize=True)
+    normalize_transparent_rgb(image).save(path, optimize=True)
 
 
 def assemble_strip(frames: Iterable[Image.Image]) -> Image.Image:
@@ -172,10 +198,26 @@ def process_forest() -> None:
     }
     for name, (rect, target) in prop_specs.items():
         prop = content_crop(source, rect)
-        save(fit_nearest(prop, *target), FOREST_OUT / "props" / f"{name}.png")
+        resized = fit_nearest(prop, *target)
+        # Violet flowers intentionally use purple petals. Their background is
+        # removed by edge-connected key flood, but their authored palette must
+        # not be treated as spill merely because petals touch transparency.
+        if name != "flowers-violet":
+            resized = replace_strong_key_artifacts(
+                remove_strong_key_edge_artifacts(
+                    despill_transparent_edges(resized, (255, 0, 255)),
+                    (255, 0, 255),
+                ),
+                (255, 0, 255),
+            )
+            resized = neutralize_environment_purple_edge(resized)
+        save(resized, FOREST_OUT / "props" / f"{name}.png")
 
     leaf = content_crop(source, (895, 1005, 955, 1065))
-    save(fit_nearest(leaf, 5, 5), FOREST_OUT / "leaf-particle.png")
+    save(
+        remove_strong_key_edge_artifacts(despill_transparent_edges(fit_nearest(leaf, 5, 5), (255, 0, 255)), (255, 0, 255)),
+        FOREST_OUT / "leaf-particle.png",
+    )
 
 
 def process_slime() -> None:
@@ -208,7 +250,25 @@ def process_slime() -> None:
                 (max(1, round(frame.width * global_scale)), max(1, round(frame.height * global_scale))),
                 RESAMPLE,
             )
-            canvas = place_on_canvas(resized, (64, 64), baseline=58)
+            canvas = replace_strong_key_artifacts(
+                remove_strong_key_edge_artifacts(
+                    despill_transparent_edges(place_on_canvas(resized, (64, 64), baseline=58), (255, 0, 255)),
+                    (255, 0, 255),
+                ),
+                (255, 0, 255),
+            )
+            # The Slime contract is moss green + amber. Its purple lower band
+            # came from the magenta source board, including desaturated spill
+            # that no generic global threshold may safely remove (Mage uses
+            # real purple). Neutralize it only for this explicitly scoped asset.
+            pixels = canvas.load()
+            for pixel_y in range(canvas.height):
+                for pixel_x in range(canvas.width):
+                    red, green, blue, alpha = pixels[pixel_x, pixel_y]
+                    if alpha and pixel_y >= 38 and red > green and blue > green and red >= 32 and blue >= 32:
+                        neutral = round((red + green + blue) / 3)
+                        pixels[pixel_x, pixel_y] = (neutral, neutral + 2, neutral, alpha)
+            canvas = normalize_transparent_rgb(canvas)
             save(canvas, SLIME_OUT / "frames" / state / f"frame-{index:02d}.png")
             normalized.append(canvas)
         save(assemble_strip(normalized), SLIME_OUT / f"{state}.png")

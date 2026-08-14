@@ -1,0 +1,2599 @@
+{
+  "inputAtlas": "V:\\Musor_trash_TZshki\\warrior_codex_assets\\warrior_codex_assets\\warrior_detailed_modular_rig_atlas_128.png",
+  "bundledAtlas": "warrior-modular-atlas-128.png",
+  "cellSize": 128,
+  "parts": {
+    "front": {
+      "head_base": {
+        "file": "front/head_base.png",
+        "cell": [
+          0,
+          0
+        ],
+        "bbox": [
+          35,
+          28,
+          114,
+          108
+        ],
+        "size": [
+          79,
+          80
+        ]
+      },
+      "face": {
+        "file": "front/face.png",
+        "cell": [
+          1,
+          0
+        ],
+        "bbox": [
+          37,
+          54,
+          113,
+          102
+        ],
+        "size": [
+          76,
+          48
+        ]
+      },
+      "hair_front": {
+        "file": "front/hair_front.png",
+        "cell": [
+          2,
+          0
+        ],
+        "bbox": [
+          23,
+          21,
+          125,
+          99
+        ],
+        "size": [
+          102,
+          78
+        ]
+      },
+      "hair_back": {
+        "file": "front/hair_back.png",
+        "cell": [
+          3,
+          0
+        ],
+        "bbox": [
+          27,
+          21,
+          123,
+          110
+        ],
+        "size": [
+          96,
+          89
+        ]
+      },
+      "ear": {
+        "file": "front/ear.png",
+        "cell": [
+          4,
+          0
+        ],
+        "bbox": [
+          56,
+          53,
+          82,
+          91
+        ],
+        "size": [
+          26,
+          38
+        ]
+      },
+      "neck": {
+        "file": "front/neck.png",
+        "cell": [
+          5,
+          0
+        ],
+        "bbox": [
+          34,
+          60,
+          74,
+          90
+        ],
+        "size": [
+          40,
+          30
+        ]
+      },
+      "scarf_cowl": {
+        "file": "front/scarf_cowl.png",
+        "cell": [
+          6,
+          0
+        ],
+        "bbox": [
+          10,
+          46,
+          98,
+          102
+        ],
+        "size": [
+          88,
+          56
+        ]
+      },
+      "scarf_tail": {
+        "file": "front/scarf_tail.png",
+        "cell": [
+          7,
+          0
+        ],
+        "bbox": [
+          15,
+          41,
+          98,
+          118
+        ],
+        "size": [
+          83,
+          77
+        ]
+      },
+      "scarf_tail_short": {
+        "file": "front/scarf_tail_short.png",
+        "cell": [
+          0,
+          1
+        ],
+        "bbox": [
+          18,
+          40,
+          114,
+          97
+        ],
+        "size": [
+          96,
+          57
+        ]
+      },
+      "scarf_tail_long": {
+        "file": "front/scarf_tail_long.png",
+        "cell": [
+          1,
+          1
+        ],
+        "bbox": [
+          26,
+          27,
+          118,
+          103
+        ],
+        "size": [
+          92,
+          76
+        ]
+      },
+      "torso": {
+        "file": "front/torso.png",
+        "cell": [
+          2,
+          1
+        ],
+        "bbox": [
+          34,
+          20,
+          115,
+          111
+        ],
+        "size": [
+          81,
+          91
+        ]
+      },
+      "tabard_front": {
+        "file": "front/tabard_front.png",
+        "cell": [
+          3,
+          1
+        ],
+        "bbox": [
+          26,
+          27,
+          119,
+          109
+        ],
+        "size": [
+          93,
+          82
+        ]
+      },
+      "tabard_back": {
+        "file": "front/tabard_back.png",
+        "cell": [
+          4,
+          1
+        ],
+        "bbox": [
+          20,
+          26,
+          114,
+          109
+        ],
+        "size": [
+          94,
+          83
+        ]
+      },
+      "belt_side": {
+        "file": "front/belt_side.png",
+        "cell": [
+          5,
+          1
+        ],
+        "bbox": [
+          14,
+          33,
+          102,
+          91
+        ],
+        "size": [
+          88,
+          58
+        ]
+      },
+      "belt_front": {
+        "file": "front/belt_front.png",
+        "cell": [
+          6,
+          1
+        ],
+        "bbox": [
+          14,
+          45,
+          100,
+          88
+        ],
+        "size": [
+          86,
+          43
+        ]
+      },
+      "strap": {
+        "file": "front/strap.png",
+        "cell": [
+          7,
+          1
+        ],
+        "bbox": [
+          11,
+          24,
+          96,
+          105
+        ],
+        "size": [
+          85,
+          81
+        ]
+      },
+      "shoulder_left": {
+        "file": "front/shoulder_left.png",
+        "cell": [
+          0,
+          2
+        ],
+        "bbox": [
+          31,
+          21,
+          109,
+          88
+        ],
+        "size": [
+          78,
+          67
+        ]
+      },
+      "shoulder_right": {
+        "file": "front/shoulder_right.png",
+        "cell": [
+          1,
+          2
+        ],
+        "bbox": [
+          30,
+          21,
+          107,
+          88
+        ],
+        "size": [
+          77,
+          67
+        ]
+      },
+      "upper_arm_left": {
+        "file": "front/upper_arm_left.png",
+        "cell": [
+          2,
+          2
+        ],
+        "bbox": [
+          45,
+          6,
+          96,
+          128
+        ],
+        "size": [
+          51,
+          122
+        ]
+      },
+      "forearm_left": {
+        "file": "front/forearm_left.png",
+        "cell": [
+          3,
+          2
+        ],
+        "bbox": [
+          40,
+          8,
+          91,
+          111
+        ],
+        "size": [
+          51,
+          103
+        ]
+      },
+      "hand_left": {
+        "file": "front/hand_left.png",
+        "cell": [
+          4,
+          2
+        ],
+        "bbox": [
+          35,
+          33,
+          92,
+          94
+        ],
+        "size": [
+          57,
+          61
+        ]
+      },
+      "upper_arm_right": {
+        "file": "front/upper_arm_right.png",
+        "cell": [
+          5,
+          2
+        ],
+        "bbox": [
+          35,
+          9,
+          83,
+          128
+        ],
+        "size": [
+          48,
+          119
+        ]
+      },
+      "forearm_right": {
+        "file": "front/forearm_right.png",
+        "cell": [
+          6,
+          2
+        ],
+        "bbox": [
+          27,
+          10,
+          82,
+          111
+        ],
+        "size": [
+          55,
+          101
+        ]
+      },
+      "hand_right": {
+        "file": "front/hand_right.png",
+        "cell": [
+          7,
+          2
+        ],
+        "bbox": [
+          24,
+          36,
+          81,
+          96
+        ],
+        "size": [
+          57,
+          60
+        ]
+      },
+      "waist": {
+        "file": "front/waist.png",
+        "cell": [
+          0,
+          3
+        ],
+        "bbox": [
+          28,
+          7,
+          116,
+          93
+        ],
+        "size": [
+          88,
+          86
+        ]
+      },
+      "thigh_left": {
+        "file": "front/thigh_left.png",
+        "cell": [
+          1,
+          3
+        ],
+        "bbox": [
+          42,
+          0,
+          100,
+          88
+        ],
+        "size": [
+          58,
+          88
+        ]
+      },
+      "shin_left": {
+        "file": "front/shin_left.png",
+        "cell": [
+          2,
+          3
+        ],
+        "bbox": [
+          46,
+          0,
+          93,
+          96
+        ],
+        "size": [
+          47,
+          96
+        ]
+      },
+      "boot_left": {
+        "file": "front/boot_left.png",
+        "cell": [
+          3,
+          3
+        ],
+        "bbox": [
+          27,
+          2,
+          94,
+          91
+        ],
+        "size": [
+          67,
+          89
+        ]
+      },
+      "thigh_right": {
+        "file": "front/thigh_right.png",
+        "cell": [
+          4,
+          3
+        ],
+        "bbox": [
+          33,
+          0,
+          93,
+          87
+        ],
+        "size": [
+          60,
+          87
+        ]
+      },
+      "shin_right": {
+        "file": "front/shin_right.png",
+        "cell": [
+          5,
+          3
+        ],
+        "bbox": [
+          31,
+          0,
+          80,
+          94
+        ],
+        "size": [
+          49,
+          94
+        ]
+      },
+      "boot_right": {
+        "file": "front/boot_right.png",
+        "cell": [
+          6,
+          3
+        ],
+        "bbox": [
+          14,
+          4,
+          85,
+          91
+        ],
+        "size": [
+          71,
+          87
+        ]
+      },
+      "pouch_right": {
+        "file": "front/pouch_right.png",
+        "cell": [
+          7,
+          3
+        ],
+        "bbox": [
+          28,
+          14,
+          85,
+          77
+        ],
+        "size": [
+          57,
+          63
+        ]
+      },
+      "pouch_left": {
+        "file": "front/pouch_left.png",
+        "cell": [
+          0,
+          4
+        ],
+        "bbox": [
+          41,
+          14,
+          96,
+          76
+        ],
+        "size": [
+          55,
+          62
+        ]
+      },
+      "tabard_left": {
+        "file": "front/tabard_left.png",
+        "cell": [
+          1,
+          4
+        ],
+        "bbox": [
+          25,
+          4,
+          124,
+          91
+        ],
+        "size": [
+          99,
+          87
+        ]
+      },
+      "tabard_right": {
+        "file": "front/tabard_right.png",
+        "cell": [
+          2,
+          4
+        ],
+        "bbox": [
+          24,
+          4,
+          118,
+          91
+        ],
+        "size": [
+          94,
+          87
+        ]
+      },
+      "sword_full": {
+        "file": "front/sword_full.png",
+        "cell": [
+          3,
+          4
+        ],
+        "bbox": [
+          12,
+          18,
+          124,
+          84
+        ],
+        "size": [
+          112,
+          66
+        ]
+      },
+      "sword_blade": {
+        "file": "front/sword_blade.png",
+        "cell": [
+          4,
+          4
+        ],
+        "bbox": [
+          15,
+          27,
+          117,
+          78
+        ],
+        "size": [
+          102,
+          51
+        ]
+      },
+      "sword_hilt": {
+        "file": "front/sword_hilt.png",
+        "cell": [
+          5,
+          4
+        ],
+        "bbox": [
+          20,
+          22,
+          77,
+          65
+        ],
+        "size": [
+          57,
+          43
+        ]
+      }
+    },
+    "left": {
+      "head_base": {
+        "file": "left/head_base.png",
+        "cell": [
+          0,
+          5
+        ],
+        "bbox": [
+          47,
+          41,
+          123,
+          125
+        ],
+        "size": [
+          76,
+          84
+        ]
+      },
+      "face": {
+        "file": "left/face.png",
+        "cell": [
+          1,
+          5
+        ],
+        "bbox": [
+          39,
+          48,
+          113,
+          127
+        ],
+        "size": [
+          74,
+          79
+        ]
+      },
+      "hair_front": {
+        "file": "left/hair_front.png",
+        "cell": [
+          2,
+          5
+        ],
+        "bbox": [
+          39,
+          26,
+          128,
+          128
+        ],
+        "size": [
+          89,
+          102
+        ]
+      },
+      "hair_back": {
+        "file": "left/hair_back.png",
+        "cell": [
+          3,
+          5
+        ],
+        "bbox": [
+          0,
+          22,
+          128,
+          122
+        ],
+        "size": [
+          128,
+          100
+        ]
+      },
+      "ear": {
+        "file": "left/ear.png",
+        "cell": [
+          4,
+          5
+        ],
+        "bbox": [
+          0,
+          40,
+          111,
+          111
+        ],
+        "size": [
+          111,
+          71
+        ]
+      },
+      "neck": {
+        "file": "left/neck.png",
+        "cell": [
+          5,
+          5
+        ],
+        "bbox": [
+          37,
+          77,
+          78,
+          112
+        ],
+        "size": [
+          41,
+          35
+        ]
+      },
+      "scarf_cowl": {
+        "file": "left/scarf_cowl.png",
+        "cell": [
+          6,
+          5
+        ],
+        "bbox": [
+          5,
+          60,
+          91,
+          117
+        ],
+        "size": [
+          86,
+          57
+        ]
+      },
+      "scarf_tail": {
+        "file": "left/scarf_tail.png",
+        "cell": [
+          7,
+          5
+        ],
+        "bbox": [
+          4,
+          62,
+          94,
+          128
+        ],
+        "size": [
+          90,
+          66
+        ]
+      },
+      "scarf_tail_short": {
+        "file": "left/scarf_tail_short.png",
+        "cell": [
+          0,
+          6
+        ],
+        "bbox": [
+          35,
+          54,
+          118,
+          100
+        ],
+        "size": [
+          83,
+          46
+        ]
+      },
+      "scarf_tail_long": {
+        "file": "left/scarf_tail_long.png",
+        "cell": [
+          1,
+          6
+        ],
+        "bbox": [
+          28,
+          41,
+          125,
+          114
+        ],
+        "size": [
+          97,
+          73
+        ]
+      },
+      "torso": {
+        "file": "left/torso.png",
+        "cell": [
+          2,
+          6
+        ],
+        "bbox": [
+          51,
+          27,
+          128,
+          128
+        ],
+        "size": [
+          77,
+          101
+        ]
+      },
+      "tabard_front": {
+        "file": "left/tabard_front.png",
+        "cell": [
+          3,
+          6
+        ],
+        "bbox": [
+          51,
+          30,
+          128,
+          128
+        ],
+        "size": [
+          77,
+          98
+        ]
+      },
+      "tabard_back": {
+        "file": "left/tabard_back.png",
+        "cell": [
+          4,
+          6
+        ],
+        "bbox": [
+          0,
+          29,
+          128,
+          128
+        ],
+        "size": [
+          128,
+          99
+        ]
+      },
+      "belt_side": {
+        "file": "left/belt_side.png",
+        "cell": [
+          5,
+          6
+        ],
+        "bbox": [
+          0,
+          61,
+          115,
+          127
+        ],
+        "size": [
+          115,
+          66
+        ]
+      },
+      "belt_front": {
+        "file": "left/belt_front.png",
+        "cell": [
+          6,
+          6
+        ],
+        "bbox": [
+          17,
+          72,
+          105,
+          114
+        ],
+        "size": [
+          88,
+          42
+        ]
+      },
+      "strap": {
+        "file": "left/strap.png",
+        "cell": [
+          7,
+          6
+        ],
+        "bbox": [
+          16,
+          0,
+          97,
+          125
+        ],
+        "size": [
+          81,
+          125
+        ]
+      },
+      "shoulder_left": {
+        "file": "left/shoulder_left.png",
+        "cell": [
+          0,
+          7
+        ],
+        "bbox": [
+          37,
+          30,
+          107,
+          91
+        ],
+        "size": [
+          70,
+          61
+        ]
+      },
+      "shoulder_right": {
+        "file": "left/shoulder_right.png",
+        "cell": [
+          1,
+          7
+        ],
+        "bbox": [
+          29,
+          31,
+          102,
+          93
+        ],
+        "size": [
+          73,
+          62
+        ]
+      },
+      "upper_arm_left": {
+        "file": "left/upper_arm_left.png",
+        "cell": [
+          2,
+          7
+        ],
+        "bbox": [
+          34,
+          33,
+          124,
+          100
+        ],
+        "size": [
+          90,
+          67
+        ]
+      },
+      "forearm_left": {
+        "file": "left/forearm_left.png",
+        "cell": [
+          3,
+          7
+        ],
+        "bbox": [
+          47,
+          0,
+          124,
+          110
+        ],
+        "size": [
+          77,
+          110
+        ]
+      },
+      "hand_left": {
+        "file": "left/hand_left.png",
+        "cell": [
+          4,
+          7
+        ],
+        "bbox": [
+          49,
+          0,
+          115,
+          102
+        ],
+        "size": [
+          66,
+          102
+        ]
+      },
+      "upper_arm_right": {
+        "file": "left/upper_arm_right.png",
+        "cell": [
+          5,
+          7
+        ],
+        "bbox": [
+          30,
+          35,
+          111,
+          102
+        ],
+        "size": [
+          81,
+          67
+        ]
+      },
+      "forearm_right": {
+        "file": "left/forearm_right.png",
+        "cell": [
+          6,
+          7
+        ],
+        "bbox": [
+          21,
+          35,
+          98,
+          110
+        ],
+        "size": [
+          77,
+          75
+        ]
+      },
+      "hand_right": {
+        "file": "left/hand_right.png",
+        "cell": [
+          7,
+          7
+        ],
+        "bbox": [
+          18,
+          54,
+          77,
+          102
+        ],
+        "size": [
+          59,
+          48
+        ]
+      },
+      "waist": {
+        "file": "left/waist.png",
+        "cell": [
+          0,
+          8
+        ],
+        "bbox": [
+          30,
+          1,
+          113,
+          89
+        ],
+        "size": [
+          83,
+          88
+        ]
+      },
+      "thigh_left": {
+        "file": "left/thigh_left.png",
+        "cell": [
+          1,
+          8
+        ],
+        "bbox": [
+          37,
+          1,
+          109,
+          128
+        ],
+        "size": [
+          72,
+          127
+        ]
+      },
+      "shin_left": {
+        "file": "left/shin_left.png",
+        "cell": [
+          2,
+          8
+        ],
+        "bbox": [
+          41,
+          0,
+          101,
+          128
+        ],
+        "size": [
+          60,
+          128
+        ]
+      },
+      "boot_left": {
+        "file": "left/boot_left.png",
+        "cell": [
+          3,
+          8
+        ],
+        "bbox": [
+          35,
+          6,
+          108,
+          89
+        ],
+        "size": [
+          73,
+          83
+        ]
+      },
+      "thigh_right": {
+        "file": "left/thigh_right.png",
+        "cell": [
+          4,
+          8
+        ],
+        "bbox": [
+          48,
+          3,
+          113,
+          91
+        ],
+        "size": [
+          65,
+          88
+        ]
+      },
+      "shin_right": {
+        "file": "left/shin_right.png",
+        "cell": [
+          5,
+          8
+        ],
+        "bbox": [
+          37,
+          1,
+          96,
+          94
+        ],
+        "size": [
+          59,
+          93
+        ]
+      },
+      "boot_right": {
+        "file": "left/boot_right.png",
+        "cell": [
+          6,
+          8
+        ],
+        "bbox": [
+          13,
+          7,
+          84,
+          91
+        ],
+        "size": [
+          71,
+          84
+        ]
+      },
+      "pouch_right": {
+        "file": "left/pouch_right.png",
+        "cell": [
+          7,
+          8
+        ],
+        "bbox": [
+          17,
+          19,
+          81,
+          89
+        ],
+        "size": [
+          64,
+          70
+        ]
+      },
+      "pouch_left": {
+        "file": "left/pouch_left.png",
+        "cell": [
+          0,
+          9
+        ],
+        "bbox": [
+          32,
+          0,
+          97,
+          68
+        ],
+        "size": [
+          65,
+          68
+        ]
+      },
+      "tabard_left": {
+        "file": "left/tabard_left.png",
+        "cell": [
+          1,
+          9
+        ],
+        "bbox": [
+          21,
+          0,
+          118,
+          80
+        ],
+        "size": [
+          97,
+          80
+        ]
+      },
+      "tabard_right": {
+        "file": "left/tabard_right.png",
+        "cell": [
+          2,
+          9
+        ],
+        "bbox": [
+          21,
+          0,
+          122,
+          80
+        ],
+        "size": [
+          101,
+          80
+        ]
+      },
+      "sword_full": {
+        "file": "left/sword_full.png",
+        "cell": [
+          3,
+          9
+        ],
+        "bbox": [
+          19,
+          13,
+          128,
+          75
+        ],
+        "size": [
+          109,
+          62
+        ]
+      },
+      "sword_blade": {
+        "file": "left/sword_blade.png",
+        "cell": [
+          4,
+          9
+        ],
+        "bbox": [
+          0,
+          30,
+          128,
+          79
+        ],
+        "size": [
+          128,
+          49
+        ]
+      },
+      "sword_hilt": {
+        "file": "left/sword_hilt.png",
+        "cell": [
+          5,
+          9
+        ],
+        "bbox": [
+          0,
+          35,
+          128,
+          80
+        ],
+        "size": [
+          128,
+          45
+        ]
+      }
+    },
+    "back": {
+      "head_base": {
+        "file": "back/head_base.png",
+        "cell": [
+          0,
+          10
+        ],
+        "bbox": [
+          43,
+          29,
+          116,
+          108
+        ],
+        "size": [
+          73,
+          79
+        ]
+      },
+      "face": {
+        "file": "back/face.png",
+        "cell": [
+          1,
+          10
+        ],
+        "bbox": [
+          63,
+          74,
+          128,
+          113
+        ],
+        "size": [
+          65,
+          39
+        ]
+      },
+      "hair_front": {
+        "file": "back/hair_front.png",
+        "cell": [
+          2,
+          10
+        ],
+        "bbox": [
+          61,
+          21,
+          128,
+          114
+        ],
+        "size": [
+          67,
+          93
+        ]
+      },
+      "hair_back": {
+        "file": "back/hair_back.png",
+        "cell": [
+          3,
+          10
+        ],
+        "bbox": [
+          0,
+          19,
+          128,
+          112
+        ],
+        "size": [
+          128,
+          93
+        ]
+      },
+      "ear": {
+        "file": "back/ear.png",
+        "cell": [
+          4,
+          10
+        ],
+        "bbox": [
+          0,
+          19,
+          128,
+          113
+        ],
+        "size": [
+          128,
+          94
+        ]
+      },
+      "neck": {
+        "file": "back/neck.png",
+        "cell": [
+          5,
+          10
+        ],
+        "bbox": [
+          0,
+          57,
+          128,
+          100
+        ],
+        "size": [
+          128,
+          43
+        ]
+      },
+      "scarf_cowl": {
+        "file": "back/scarf_cowl.png",
+        "cell": [
+          6,
+          10
+        ],
+        "bbox": [
+          0,
+          69,
+          71,
+          120
+        ],
+        "size": [
+          71,
+          51
+        ]
+      },
+      "scarf_tail": {
+        "file": "back/scarf_tail.png",
+        "cell": [
+          7,
+          10
+        ],
+        "bbox": [
+          10,
+          44,
+          87,
+          116
+        ],
+        "size": [
+          77,
+          72
+        ]
+      },
+      "scarf_tail_short": {
+        "file": "back/scarf_tail_short.png",
+        "cell": [
+          0,
+          11
+        ],
+        "bbox": [
+          41,
+          48,
+          118,
+          96
+        ],
+        "size": [
+          77,
+          48
+        ]
+      },
+      "scarf_tail_long": {
+        "file": "back/scarf_tail_long.png",
+        "cell": [
+          1,
+          11
+        ],
+        "bbox": [
+          50,
+          32,
+          128,
+          103
+        ],
+        "size": [
+          78,
+          71
+        ]
+      },
+      "torso": {
+        "file": "back/torso.png",
+        "cell": [
+          2,
+          11
+        ],
+        "bbox": [
+          0,
+          32,
+          128,
+          108
+        ],
+        "size": [
+          128,
+          76
+        ]
+      },
+      "tabard_front": {
+        "file": "back/tabard_front.png",
+        "cell": [
+          3,
+          11
+        ],
+        "bbox": [
+          0,
+          34,
+          128,
+          110
+        ],
+        "size": [
+          128,
+          76
+        ]
+      },
+      "tabard_back": {
+        "file": "back/tabard_back.png",
+        "cell": [
+          4,
+          11
+        ],
+        "bbox": [
+          0,
+          39,
+          128,
+          110
+        ],
+        "size": [
+          128,
+          71
+        ]
+      },
+      "belt_side": {
+        "file": "back/belt_side.png",
+        "cell": [
+          5,
+          11
+        ],
+        "bbox": [
+          0,
+          48,
+          128,
+          94
+        ],
+        "size": [
+          128,
+          46
+        ]
+      },
+      "belt_front": {
+        "file": "back/belt_front.png",
+        "cell": [
+          6,
+          11
+        ],
+        "bbox": [
+          0,
+          57,
+          71,
+          96
+        ],
+        "size": [
+          71,
+          39
+        ]
+      },
+      "strap": {
+        "file": "back/strap.png",
+        "cell": [
+          7,
+          11
+        ],
+        "bbox": [
+          6,
+          38,
+          80,
+          99
+        ],
+        "size": [
+          74,
+          61
+        ]
+      },
+      "shoulder_left": {
+        "file": "back/shoulder_left.png",
+        "cell": [
+          0,
+          12
+        ],
+        "bbox": [
+          39,
+          28,
+          96,
+          110
+        ],
+        "size": [
+          57,
+          82
+        ]
+      },
+      "shoulder_right": {
+        "file": "back/shoulder_right.png",
+        "cell": [
+          1,
+          12
+        ],
+        "bbox": [
+          54,
+          28,
+          111,
+          110
+        ],
+        "size": [
+          57,
+          82
+        ]
+      },
+      "upper_arm_left": {
+        "file": "back/upper_arm_left.png",
+        "cell": [
+          2,
+          12
+        ],
+        "bbox": [
+          68,
+          24,
+          128,
+          106
+        ],
+        "size": [
+          60,
+          82
+        ]
+      },
+      "forearm_left": {
+        "file": "back/forearm_left.png",
+        "cell": [
+          3,
+          12
+        ],
+        "bbox": [
+          0,
+          42,
+          115,
+          113
+        ],
+        "size": [
+          115,
+          71
+        ]
+      },
+      "hand_left": {
+        "file": "back/hand_left.png",
+        "cell": [
+          4,
+          12
+        ],
+        "bbox": [
+          16,
+          47,
+          61,
+          103
+        ],
+        "size": [
+          45,
+          56
+        ]
+      },
+      "upper_arm_right": {
+        "file": "back/upper_arm_right.png",
+        "cell": [
+          5,
+          12
+        ],
+        "bbox": [
+          1,
+          25,
+          63,
+          107
+        ],
+        "size": [
+          62,
+          82
+        ]
+      },
+      "forearm_right": {
+        "file": "back/forearm_right.png",
+        "cell": [
+          6,
+          12
+        ],
+        "bbox": [
+          0,
+          28,
+          56,
+          110
+        ],
+        "size": [
+          56,
+          82
+        ]
+      },
+      "hand_right": {
+        "file": "back/hand_right.png",
+        "cell": [
+          7,
+          12
+        ],
+        "bbox": [
+          19,
+          41,
+          66,
+          101
+        ],
+        "size": [
+          47,
+          60
+        ]
+      },
+      "waist": {
+        "file": "back/waist.png",
+        "cell": [
+          0,
+          13
+        ],
+        "bbox": [
+          39,
+          20,
+          120,
+          98
+        ],
+        "size": [
+          81,
+          78
+        ]
+      },
+      "thigh_left": {
+        "file": "back/thigh_left.png",
+        "cell": [
+          1,
+          13
+        ],
+        "bbox": [
+          55,
+          17,
+          107,
+          100
+        ],
+        "size": [
+          52,
+          83
+        ]
+      },
+      "shin_left": {
+        "file": "back/shin_left.png",
+        "cell": [
+          2,
+          13
+        ],
+        "bbox": [
+          72,
+          23,
+          122,
+          102
+        ],
+        "size": [
+          50,
+          79
+        ]
+      },
+      "boot_left": {
+        "file": "back/boot_left.png",
+        "cell": [
+          3,
+          13
+        ],
+        "bbox": [
+          78,
+          25,
+          128,
+          103
+        ],
+        "size": [
+          50,
+          78
+        ]
+      },
+      "thigh_right": {
+        "file": "back/thigh_right.png",
+        "cell": [
+          4,
+          13
+        ],
+        "bbox": [
+          0,
+          17,
+          128,
+          100
+        ],
+        "size": [
+          128,
+          83
+        ]
+      },
+      "shin_right": {
+        "file": "back/shin_right.png",
+        "cell": [
+          5,
+          13
+        ],
+        "bbox": [
+          0,
+          17,
+          128,
+          103
+        ],
+        "size": [
+          128,
+          86
+        ]
+      },
+      "boot_right": {
+        "file": "back/boot_right.png",
+        "cell": [
+          6,
+          13
+        ],
+        "bbox": [
+          0,
+          26,
+          89,
+          102
+        ],
+        "size": [
+          89,
+          76
+        ]
+      },
+      "pouch_right": {
+        "file": "back/pouch_right.png",
+        "cell": [
+          7,
+          13
+        ],
+        "bbox": [
+          13,
+          32,
+          62,
+          88
+        ],
+        "size": [
+          49,
+          56
+        ]
+      },
+      "pouch_left": {
+        "file": "back/pouch_left.png",
+        "cell": [
+          0,
+          14
+        ],
+        "bbox": [
+          52,
+          26,
+          102,
+          82
+        ],
+        "size": [
+          50,
+          56
+        ]
+      },
+      "tabard_left": {
+        "file": "back/tabard_left.png",
+        "cell": [
+          1,
+          14
+        ],
+        "bbox": [
+          50,
+          15,
+          128,
+          89
+        ],
+        "size": [
+          78,
+          74
+        ]
+      },
+      "tabard_right": {
+        "file": "back/tabard_right.png",
+        "cell": [
+          2,
+          14
+        ],
+        "bbox": [
+          0,
+          15,
+          128,
+          89
+        ],
+        "size": [
+          128,
+          74
+        ]
+      },
+      "sword_full": {
+        "file": "back/sword_full.png",
+        "cell": [
+          3,
+          14
+        ],
+        "bbox": [
+          0,
+          19,
+          128,
+          86
+        ],
+        "size": [
+          128,
+          67
+        ]
+      },
+      "sword_blade": {
+        "file": "back/sword_blade.png",
+        "cell": [
+          4,
+          14
+        ],
+        "bbox": [
+          0,
+          26,
+          128,
+          97
+        ],
+        "size": [
+          128,
+          71
+        ]
+      },
+      "sword_hilt": {
+        "file": "back/sword_hilt.png",
+        "cell": [
+          5,
+          14
+        ],
+        "bbox": [
+          0,
+          26,
+          128,
+          89
+        ],
+        "size": [
+          128,
+          63
+        ]
+      }
+    },
+    "right": {
+      "head_base": {
+        "file": "right/head_base.png",
+        "cell": [
+          0,
+          15
+        ],
+        "bbox": [
+          38,
+          45,
+          114,
+          128
+        ],
+        "size": [
+          76,
+          83
+        ]
+      },
+      "face": {
+        "file": "right/face.png",
+        "cell": [
+          1,
+          15
+        ],
+        "bbox": [
+          50,
+          56,
+          109,
+          128
+        ],
+        "size": [
+          59,
+          72
+        ]
+      },
+      "hair_front": {
+        "file": "right/hair_front.png",
+        "cell": [
+          2,
+          15
+        ],
+        "bbox": [
+          35,
+          28,
+          128,
+          128
+        ],
+        "size": [
+          93,
+          100
+        ]
+      },
+      "hair_back": {
+        "file": "right/hair_back.png",
+        "cell": [
+          3,
+          15
+        ],
+        "bbox": [
+          0,
+          32,
+          128,
+          128
+        ],
+        "size": [
+          128,
+          96
+        ]
+      },
+      "ear": {
+        "file": "right/ear.png",
+        "cell": [
+          4,
+          15
+        ],
+        "bbox": [
+          0,
+          45,
+          105,
+          114
+        ],
+        "size": [
+          105,
+          69
+        ]
+      },
+      "neck": {
+        "file": "right/neck.png",
+        "cell": [
+          5,
+          15
+        ],
+        "bbox": [
+          39,
+          73,
+          85,
+          107
+        ],
+        "size": [
+          46,
+          34
+        ]
+      },
+      "scarf_cowl": {
+        "file": "right/scarf_cowl.png",
+        "cell": [
+          6,
+          15
+        ],
+        "bbox": [
+          3,
+          60,
+          98,
+          118
+        ],
+        "size": [
+          95,
+          58
+        ]
+      },
+      "scarf_tail": {
+        "file": "right/scarf_tail.png",
+        "cell": [
+          7,
+          15
+        ],
+        "bbox": [
+          10,
+          59,
+          99,
+          128
+        ],
+        "size": [
+          89,
+          69
+        ]
+      },
+      "scarf_tail_short": {
+        "file": "right/scarf_tail_short.png",
+        "cell": [
+          0,
+          16
+        ],
+        "bbox": [
+          36,
+          45,
+          118,
+          107
+        ],
+        "size": [
+          82,
+          62
+        ]
+      },
+      "scarf_tail_long": {
+        "file": "right/scarf_tail_long.png",
+        "cell": [
+          1,
+          16
+        ],
+        "bbox": [
+          26,
+          43,
+          123,
+          108
+        ],
+        "size": [
+          97,
+          65
+        ]
+      },
+      "torso": {
+        "file": "right/torso.png",
+        "cell": [
+          2,
+          16
+        ],
+        "bbox": [
+          51,
+          32,
+          128,
+          118
+        ],
+        "size": [
+          77,
+          86
+        ]
+      },
+      "tabard_front": {
+        "file": "right/tabard_front.png",
+        "cell": [
+          3,
+          16
+        ],
+        "bbox": [
+          55,
+          0,
+          128,
+          122
+        ],
+        "size": [
+          73,
+          122
+        ]
+      },
+      "tabard_back": {
+        "file": "right/tabard_back.png",
+        "cell": [
+          4,
+          16
+        ],
+        "bbox": [
+          0,
+          31,
+          128,
+          119
+        ],
+        "size": [
+          128,
+          88
+        ]
+      },
+      "belt_side": {
+        "file": "right/belt_side.png",
+        "cell": [
+          5,
+          16
+        ],
+        "bbox": [
+          0,
+          54,
+          128,
+          110
+        ],
+        "size": [
+          128,
+          56
+        ]
+      },
+      "belt_front": {
+        "file": "right/belt_front.png",
+        "cell": [
+          6,
+          16
+        ],
+        "bbox": [
+          0,
+          61,
+          96,
+          94
+        ],
+        "size": [
+          96,
+          33
+        ]
+      },
+      "strap": {
+        "file": "right/strap.png",
+        "cell": [
+          7,
+          16
+        ],
+        "bbox": [
+          10,
+          41,
+          89,
+          113
+        ],
+        "size": [
+          79,
+          72
+        ]
+      },
+      "shoulder_left": {
+        "file": "right/shoulder_left.png",
+        "cell": [
+          0,
+          17
+        ],
+        "bbox": [
+          37,
+          24,
+          104,
+          85
+        ],
+        "size": [
+          67,
+          61
+        ]
+      },
+      "shoulder_right": {
+        "file": "right/shoulder_right.png",
+        "cell": [
+          1,
+          17
+        ],
+        "bbox": [
+          47,
+          23,
+          113,
+          82
+        ],
+        "size": [
+          66,
+          59
+        ]
+      },
+      "upper_arm_left": {
+        "file": "right/upper_arm_left.png",
+        "cell": [
+          2,
+          17
+        ],
+        "bbox": [
+          42,
+          17,
+          95,
+          105
+        ],
+        "size": [
+          53,
+          88
+        ]
+      },
+      "forearm_left": {
+        "file": "right/forearm_left.png",
+        "cell": [
+          3,
+          17
+        ],
+        "bbox": [
+          28,
+          25,
+          97,
+          103
+        ],
+        "size": [
+          69,
+          78
+        ]
+      },
+      "hand_left": {
+        "file": "right/hand_left.png",
+        "cell": [
+          4,
+          17
+        ],
+        "bbox": [
+          26,
+          44,
+          81,
+          90
+        ],
+        "size": [
+          55,
+          46
+        ]
+      },
+      "upper_arm_right": {
+        "file": "right/upper_arm_right.png",
+        "cell": [
+          5,
+          17
+        ],
+        "bbox": [
+          30,
+          22,
+          83,
+          106
+        ],
+        "size": [
+          53,
+          84
+        ]
+      },
+      "forearm_right": {
+        "file": "right/forearm_right.png",
+        "cell": [
+          6,
+          17
+        ],
+        "bbox": [
+          3,
+          22,
+          72,
+          104
+        ],
+        "size": [
+          69,
+          82
+        ]
+      },
+      "hand_right": {
+        "file": "right/hand_right.png",
+        "cell": [
+          7,
+          17
+        ],
+        "bbox": [
+          18,
+          39,
+          69,
+          87
+        ],
+        "size": [
+          51,
+          48
+        ]
+      },
+      "waist": {
+        "file": "right/waist.png",
+        "cell": [
+          0,
+          18
+        ],
+        "bbox": [
+          34,
+          6,
+          113,
+          85
+        ],
+        "size": [
+          79,
+          79
+        ]
+      },
+      "thigh_left": {
+        "file": "right/thigh_left.png",
+        "cell": [
+          1,
+          18
+        ],
+        "bbox": [
+          37,
+          0,
+          106,
+          128
+        ],
+        "size": [
+          69,
+          128
+        ]
+      },
+      "shin_left": {
+        "file": "right/shin_left.png",
+        "cell": [
+          2,
+          18
+        ],
+        "bbox": [
+          35,
+          2,
+          100,
+          128
+        ],
+        "size": [
+          65,
+          126
+        ]
+      },
+      "boot_left": {
+        "file": "right/boot_left.png",
+        "cell": [
+          3,
+          18
+        ],
+        "bbox": [
+          51,
+          3,
+          124,
+          82
+        ],
+        "size": [
+          73,
+          79
+        ]
+      },
+      "thigh_right": {
+        "file": "right/thigh_right.png",
+        "cell": [
+          4,
+          18
+        ],
+        "bbox": [
+          50,
+          1,
+          98,
+          78
+        ],
+        "size": [
+          48,
+          77
+        ]
+      },
+      "shin_right": {
+        "file": "right/shin_right.png",
+        "cell": [
+          5,
+          18
+        ],
+        "bbox": [
+          43,
+          3,
+          87,
+          81
+        ],
+        "size": [
+          44,
+          78
+        ]
+      },
+      "boot_right": {
+        "file": "right/boot_right.png",
+        "cell": [
+          6,
+          18
+        ],
+        "bbox": [
+          28,
+          6,
+          100,
+          83
+        ],
+        "size": [
+          72,
+          77
+        ]
+      },
+      "pouch_right": {
+        "file": "right/pouch_right.png",
+        "cell": [
+          7,
+          18
+        ],
+        "bbox": [
+          22,
+          12,
+          78,
+          76
+        ],
+        "size": [
+          56,
+          64
+        ]
+      },
+      "pouch_left": {
+        "file": "right/pouch_left.png",
+        "cell": [
+          0,
+          19
+        ],
+        "bbox": [
+          36,
+          0,
+          93,
+          64
+        ],
+        "size": [
+          57,
+          64
+        ]
+      },
+      "tabard_left": {
+        "file": "right/tabard_left.png",
+        "cell": [
+          1,
+          19
+        ],
+        "bbox": [
+          16,
+          0,
+          108,
+          73
+        ],
+        "size": [
+          92,
+          73
+        ]
+      },
+      "tabard_right": {
+        "file": "right/tabard_right.png",
+        "cell": [
+          2,
+          19
+        ],
+        "bbox": [
+          25,
+          0,
+          105,
+          76
+        ],
+        "size": [
+          80,
+          76
+        ]
+      },
+      "sword_full": {
+        "file": "right/sword_full.png",
+        "cell": [
+          3,
+          19
+        ],
+        "bbox": [
+          3,
+          10,
+          128,
+          75
+        ],
+        "size": [
+          125,
+          65
+        ]
+      },
+      "sword_blade": {
+        "file": "right/sword_blade.png",
+        "cell": [
+          4,
+          19
+        ],
+        "bbox": [
+          0,
+          20,
+          128,
+          75
+        ],
+        "size": [
+          128,
+          55
+        ]
+      },
+      "sword_hilt": {
+        "file": "right/sword_hilt.png",
+        "cell": [
+          5,
+          19
+        ],
+        "bbox": [
+          0,
+          12,
+          105,
+          73
+        ],
+        "size": [
+          105,
+          61
+        ]
+      }
+    }
+  }
+}

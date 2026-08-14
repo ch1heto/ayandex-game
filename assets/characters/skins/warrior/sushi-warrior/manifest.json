@@ -1,0 +1,48 @@
+{
+  "id": "sushi-warrior",
+  "class": "warrior",
+  "displayName": "Sushi Warrior",
+  "sourcePack": "SushiWarrior.zip",
+  "frameWidth": 128,
+  "frameHeight": 64,
+  "displayScale": 0.72,
+  "origin": [
+    0.25,
+    0.921875
+  ],
+  "baseline": 59,
+  "supportedDirections": [
+    "left",
+    "right"
+  ],
+  "animations": {
+    "idle": {
+      "sheet": "preview-idle.png",
+      "frameWidth": 128,
+      "frameHeight": 64,
+      "frames": 4,
+      "frameRate": 8
+    },
+    "walk": {
+      "sheet": "preview-walk.png",
+      "frameWidth": 128,
+      "frameHeight": 64,
+      "frames": 4,
+      "frameRate": 8
+    },
+    "attack": {
+      "sheet": "preview-attack.png",
+      "frameWidth": 128,
+      "frameHeight": 64,
+      "frames": 6,
+      "frameRate": 10
+    }
+  },
+  "compatibility": "SIDE_VIEW_ONLY",
+  "runtimeStatus": "GAMEPLAY",
+  "sourceFilesPreserved": true,
+  "documentationFiles": [],
+  "notes": "DEV gameplay enabled. Vertical movement reuses the last horizontal animation; no up/down frames were invented.",
+  "visualCenterX": 32,
+  "attackImpactFrame": 3
+}

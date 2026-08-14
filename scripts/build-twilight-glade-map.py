@@ -52,7 +52,7 @@ def build_ground() -> list[int]:
     for y in range(HEIGHT):
         for x in range(WIDTH):
             selector = (x * 11 + y * 7 + x * y * 3) % 29
-            data.append(1 + (selector % 4 if selector in (0, 3, 7, 11, 19, 23) else 0))
+            data.append(1 + (selector % 4 if selector in (0, 7) else 0))
     return data
 
 
@@ -61,7 +61,7 @@ def build_path() -> list[int]:
 
     def paint(x: int, y: int) -> None:
         if 0 <= x < WIDTH and 0 <= y < HEIGHT:
-            data[y * WIDTH + x] = 5 + ((x + y) & 1)
+            data[y * WIDTH + x] = 6 if (x * 5 + y * 3) % 11 == 0 else 5
 
     for x in range(1, WIDTH - 1):
         center = 11 + (1 if x < 8 else -1 if x > 31 else 0)
@@ -118,12 +118,15 @@ def build_objects() -> tuple[list[dict[str, object]], list[dict[str, object]], l
         (1145, 610, "bush-a", "bush"), (570, 245, "stump", "stump"),
         (335, 590, "stump", "stump"), (690, 470, "fern", "plant"),
         (455, 280, "fern", "plant"), (1060, 460, "flowers-gold", "plant"),
-        (615, 590, "flowers-violet", "plant"), (275, 390, "flowers-white", "plant"),
+        (615, 590, "flowers-white", "plant"), (275, 390, "flowers-white", "plant"),
         (760, 335, "sprout", "plant"), (1040, 640, "flowers-white", "plant"),
     ]
     for x, y, texture, class_name in decorative_points:
         props.append(point_object(object_id, texture, class_name, x, y, texture=texture))
         object_id += 1
+        if class_name == "stump":
+            collisions.append(rect_object(object_id, f"{texture}-body", x - 16, y - 12, 32, 12))
+            object_id += 1
 
     props.append(point_object(object_id, "forest-pond", "ground", 1045, 235, texture="pond", ground=True))
     object_id += 1

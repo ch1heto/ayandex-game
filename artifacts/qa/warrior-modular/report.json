@@ -1,0 +1,23 @@
+{
+  "slicedParts": 152,
+  "sourcePartialAlphaPixels": 0,
+  "sourceHiddenRgbPixels": 0,
+  "sourcePurpleArtifactPixels": 0,
+  "frames": 48,
+  "root": [
+    32,
+    60
+  ],
+  "partialAlphaPixels": 0,
+  "hiddenRgbPixels": 0,
+  "purpleArtifactPixels": 0,
+  "tinyDetachedIslands": 0,
+  "baselineErrors": [],
+  "attachmentGaps": [],
+  "stableBodyFramesPerDirection": 1,
+  "visualSwordReachPixels": [
+    22.8,
+    26.2
+  ],
+  "gameplaySwordReachPixels": 25
+}

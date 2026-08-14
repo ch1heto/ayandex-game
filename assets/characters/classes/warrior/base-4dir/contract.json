@@ -1,0 +1,76 @@
+{
+  "sourceAtlas": "assets/characters/classes/warrior/rig-source/warrior-modular-atlas-128.png",
+  "frameSize": [
+    320,
+    320
+  ],
+  "root": [
+    160,
+    304
+  ],
+  "directionOrder": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "scaleOperations": 0,
+  "frames": {
+    "down": {
+      "partialAlpha": 0,
+      "hiddenRgb": 0,
+      "magenta": 0,
+      "bbox": [
+        73,
+        37,
+        245,
+        304
+      ],
+      "bottomPixel": 303,
+      "borderContact": false,
+      "detachedComponentsAtMost2Px": 0
+    },
+    "left": {
+      "partialAlpha": 0,
+      "hiddenRgb": 0,
+      "magenta": 0,
+      "bbox": [
+        42,
+        33,
+        235,
+        304
+      ],
+      "bottomPixel": 303,
+      "borderContact": false,
+      "detachedComponentsAtMost2Px": 0
+    },
+    "up": {
+      "partialAlpha": 0,
+      "hiddenRgb": 0,
+      "magenta": 0,
+      "bbox": [
+        83,
+        38,
+        255,
+        304
+      ],
+      "bottomPixel": 303,
+      "borderContact": false,
+      "detachedComponentsAtMost2Px": 0
+    },
+    "right": {
+      "partialAlpha": 0,
+      "hiddenRgb": 0,
+      "magenta": 0,
+      "bbox": [
+        86,
+        35,
+        276,
+        304
+      ],
+      "bottomPixel": 303,
+      "borderContact": false,
+      "detachedComponentsAtMost2Px": 0
+    }
+  }
+}

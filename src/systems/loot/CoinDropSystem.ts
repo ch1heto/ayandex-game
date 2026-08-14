@@ -32,11 +32,11 @@ export class CoinDropSystem {
 
   public constructor(
     private readonly scene: Phaser.Scene,
-    private readonly player: Phaser.Physics.Arcade.Sprite | Phaser.GameObjects.Sprite,
+    private readonly player: Phaser.GameObjects.GameObject & { x: number; y: number },
     private readonly onPickup: (value: number) => void,
   ) {
     this.group = scene.physics.add.group({ allowGravity: false });
-    this.overlap = scene.physics.add.overlap(player, this.group, (_player, coinObject) => {
+    this.overlap = scene.physics.add.overlap(player as Phaser.Types.Physics.Arcade.ArcadeColliderType, this.group, (_player, coinObject) => {
       if (coinObject instanceof Phaser.Physics.Arcade.Sprite) this.collect(coinObject);
     });
   }

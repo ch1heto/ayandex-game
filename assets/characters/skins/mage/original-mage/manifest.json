@@ -1,0 +1,47 @@
+{
+  "id": "original-mage",
+  "class": "mage",
+  "displayName": "Original Mage",
+  "sourcePack": "Ashvale original class assets",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "displayScale": 1,
+  "origin": [
+    0.5,
+    0.9375
+  ],
+  "baseline": 60,
+  "supportedDirections": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "animations": {
+    "idle": {
+      "sheet": "preview-idle.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 1,
+      "frameRate": 9
+    },
+    "walk": {
+      "sheet": "preview-walk.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 4,
+      "frameRate": 9
+    },
+    "attack": {
+      "sheet": "preview-attack.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 4,
+      "frameRate": 12
+    }
+  },
+  "compatibility": "FULL_4DIR",
+  "runtimeStatus": "PORTRAIT_ONLY",
+  "sourceFilesPreserved": true,
+  "notes": "Class-selection portrait source only. Explicitly forbidden as a gameplay skin."
+}

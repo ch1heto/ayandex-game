@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pixel Sprite QA"
+  short_description: "Validate Ashvale character sprites visually"
+  default_prompt: "Use $pixel-sprite-qa to validate Ashvale character sprites visually and technically before runtime integration."

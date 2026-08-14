@@ -1,0 +1,46 @@
+{
+  "id": "jrpg-warrior",
+  "class": "warrior",
+  "displayName": "JRPG Warrior",
+  "sourcePack": "JRPG_HEROES.zip",
+  "frameWidth": 16,
+  "frameHeight": 24,
+  "displayScale": 2.5,
+  "origin": [
+    0.5,
+    0.96
+  ],
+  "baseline": 23,
+  "supportedDirections": [
+    "left",
+    "right"
+  ],
+  "animations": {
+    "idle": {
+      "sheet": "preview-idle.png",
+      "frameWidth": 16,
+      "frameHeight": 24,
+      "frames": 1,
+      "frameRate": 8
+    },
+    "walk": {
+      "sheet": "preview-walk.png",
+      "frameWidth": 16,
+      "frameHeight": 24,
+      "frames": 16,
+      "frameRate": 8
+    },
+    "attack": {
+      "sheet": "preview-attack.png",
+      "frameWidth": 80,
+      "frameHeight": 112,
+      "frames": 3,
+      "frameRate": 10
+    }
+  },
+  "compatibility": "SIDE_VIEW_ONLY",
+  "runtimeStatus": "EXCLUDED",
+  "sourceFilesPreserved": true,
+  "documentationFiles": [],
+  "notes": "Original asset is green and has no up/down frames; excluded from selectors."
+}

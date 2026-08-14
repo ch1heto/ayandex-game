@@ -109,6 +109,13 @@ export class MossSlime {
   public get x(): number { return this.visual.x; }
   public get y(): number { return this.visual.y; }
 
+  public applyKnockback(sourceX: number, sourceY: number, speed: number): void {
+    if (this.state === 'dead') return;
+    const direction = new Phaser.Math.Vector2(this.visual.x - sourceX, this.visual.y - sourceY);
+    if (direction.lengthSq() > 0) direction.normalize().scale(speed);
+    this.body.setVelocity(direction.x, direction.y);
+  }
+
   public destroy(): void {
     this.visual.off(Phaser.Animations.Events.ANIMATION_UPDATE, this.handleAnimationUpdate, this);
     this.visual.off(Phaser.Animations.Events.ANIMATION_COMPLETE, this.handleAnimationComplete, this);

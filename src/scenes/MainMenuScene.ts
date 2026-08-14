@@ -1,58 +1,56 @@
 import Phaser from 'phaser';
 
 import { SceneKey } from '../core/sceneKeys';
+import { localizationService, t, type Language } from '../i18n/LocalizationService';
+import { createDomOverlay } from '../ui/domOverlay';
 import { yandexGamesService } from '../yandex/YandexGamesService';
 
 export class MainMenuScene extends Phaser.Scene {
-  public constructor() {
-    super(SceneKey.MainMenu);
-  }
+  public constructor() { super(SceneKey.MainMenu); }
 
   public create(): void {
-    const title = this.add.text(320, 134, 'ASHVALE', {
-      color: '#e8edf5',
-      fontFamily: 'monospace',
-      fontSize: '36px',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    const start = this.add.text(320, 208, 'ENTER TWILIGHT GLADE', {
-      color: '#9cc7a1',
-      fontFamily: 'monospace',
-      fontSize: '17px',
-      backgroundColor: '#1e3240',
-      padding: { x: 14, y: 9 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-    this.add.text(320, 290, 'WASD — MOVE/FACE   |   LMB — BASIC ATTACK   |   1/2/3 — CLASS', {
-      color: '#8f9baa',
-      fontFamily: 'monospace',
-      fontSize: '12px',
-    }).setOrigin(0.5);
-
-    start.on(Phaser.Input.Events.POINTER_OVER, () => start.setColor('#ffffff'));
-    start.on(Phaser.Input.Events.POINTER_OUT, () => start.setColor('#9cc7a1'));
-    start.on(Phaser.Input.Events.POINTER_UP, () => this.startGame());
-    this.input.keyboard?.once('keydown-ENTER', () => this.startGame());
-
+    const overlay = createDomOverlay(this, 'main-menu-ui');
+    const panel = document.createElement('section');
+    panel.className = 'main-menu-panel';
+    panel.setAttribute('aria-label', 'Ashvale');
+    const title = document.createElement('h1'); title.textContent = 'ASHVALE';
+    const subtitle = document.createElement('p'); subtitle.className = 'ashvale-subtitle'; subtitle.textContent = t('menu.subtitle');
+    const begin = this.createButton(t('menu.begin'), 'primary', () => this.scene.start(SceneKey.CharacterSelect));
+    const hint = document.createElement('p'); hint.className = 'menu-hint'; hint.textContent = t('menu.hint');
+    panel.append(title, subtitle, begin, hint, this.createButton(t('menu.settings'), 'secondary', () => this.openSettings()));
     if (import.meta.env.DEV) {
-      const artPreview = this.add.text(320, 250, 'ART PREVIEW (DEV)', {
-        color: '#d7b86e',
-        fontFamily: 'monospace',
-        fontSize: '13px',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-      artPreview.on(Phaser.Input.Events.POINTER_OVER, () => artPreview.setColor('#ffffff'));
-      artPreview.on(Phaser.Input.Events.POINTER_OUT, () => artPreview.setColor('#d7b86e'));
-      artPreview.on(Phaser.Input.Events.POINTER_UP, () => this.scene.start(SceneKey.ArtPreview));
-      this.input.keyboard?.once('keydown-P', () => this.scene.start(SceneKey.ArtPreview));
+      const preview = this.createButton(t('menu.preview'), 'secondary', () => this.scene.start(SceneKey.SkinPreview));
+      const devHint = document.createElement('p'); devHint.className = 'dev-hint'; devHint.textContent = t('menu.devHint');
+      panel.append(preview, devHint);
     }
-
+    const controls = document.createElement('p'); controls.className = 'menu-controls'; controls.textContent = t('menu.controls');
+    panel.append(controls); overlay.append(panel);
+    this.input.keyboard?.once('keydown-ENTER', () => this.scene.start(SceneKey.CharacterSelect));
+    if (import.meta.env.DEV) this.input.keyboard?.once('keydown-K', () => this.scene.start(SceneKey.SkinPreview));
     yandexGamesService.markGameReady();
-    title.setResolution(1);
   }
 
-  private startGame(): void {
-    this.scene.start(SceneKey.Game);
+  private openSettings(): void {
+    const overlay = createDomOverlay(this, 'settings-ui');
+    const panel = document.createElement('section'); panel.className = 'settings-panel';
+    const heading = document.createElement('h2'); heading.textContent = t('settings.title');
+    const label = document.createElement('p'); label.textContent = t('settings.language');
+    const options = document.createElement('div'); options.className = 'language-options';
+    options.append(this.createLanguageButton('ru', 'РУССКИЙ'), this.createLanguageButton('en', 'ENGLISH'));
+    const close = this.createButton(t('settings.close'), 'secondary', () => this.scene.restart());
+    panel.append(heading, label, options, close); overlay.append(panel);
+  }
+
+  private createLanguageButton(language: Language, label: string): HTMLButtonElement {
+    const button = document.createElement('button'); button.type = 'button';
+    button.className = `language-button ${localizationService.language === language ? 'selected' : ''}`;
+    button.textContent = label;
+    button.addEventListener('click', () => { localizationService.setLanguage(language); this.scene.restart(); });
+    return button;
+  }
+
+  private createButton(label: string, style: 'primary' | 'secondary', action: () => void): HTMLButtonElement {
+    const button = document.createElement('button'); button.type = 'button'; button.className = `menu-button ${style}`;
+    button.textContent = label; button.addEventListener('click', action, { once: true }); return button;
   }
 }

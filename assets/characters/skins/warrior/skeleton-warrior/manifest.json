@@ -1,0 +1,48 @@
+{
+  "id": "skeleton-warrior",
+  "class": "warrior",
+  "displayName": "Skeleton Warrior",
+  "sourcePack": "SkeletonWarrior.zip",
+  "frameWidth": 96,
+  "frameHeight": 96,
+  "displayScale": 1.5,
+  "origin": [
+    0.4479166666666667,
+    0.6354166666666666
+  ],
+  "baseline": 61,
+  "supportedDirections": [
+    "left",
+    "right"
+  ],
+  "animations": {
+    "idle": {
+      "sheet": "preview-idle.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4,
+      "frameRate": 8
+    },
+    "walk": {
+      "sheet": "preview-walk.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "frameRate": 8
+    },
+    "attack": {
+      "sheet": "preview-attack.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "frameRate": 10
+    }
+  },
+  "compatibility": "SIDE_VIEW_ONLY",
+  "runtimeStatus": "GAMEPLAY",
+  "sourceFilesPreserved": true,
+  "documentationFiles": [],
+  "notes": "DEV gameplay enabled. Vertical movement reuses the last horizontal animation; no up/down frames were invented.",
+  "visualCenterX": 43,
+  "attackImpactFrame": 3
+}
