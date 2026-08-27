@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { PlayerCharacter } from '../entities/player/PlayerCharacter';
 import { EquipmentPanels } from '../ui/EquipmentPanels';
 import { SKILL_ICONS } from '../ui/itemIcons';
 import { ADVANCED_SKILLS } from '../data/advancedSkills';
@@ -8,8 +9,8 @@ import type { HudNotification } from '../systems/notifications/notifications';
 import coinIconUrl from '../../assets/ui/hud/coin-icon.png';
 import heartFullUrl from '../../assets/ui/hud/heart-full.png';
 import heavySlashIconUrl from '../../assets/ui/skills/heavy-slash.png';
-import piercingShotIconUrl from '../../assets/ui/skills/piercing-shot.png';
-import magicBurstIconUrl from '../../assets/ui/skills/magic-burst.png';
+import piercingShotIconUrl from '../../assets/ui/skills/piercing-shot.svg';
+import blinkIconUrl from '../../assets/ui/skills/arcane-blink.svg';
 import { SceneKey } from '../core/sceneKeys';
 import { PLAYER_CLASS_CONFIGS } from '../data/playerClasses';
 import type { PlayerClassId } from '../entities/player/playerTypes';
@@ -51,7 +52,7 @@ export class UIScene extends Phaser.Scene {
 
   public constructor() { super(SceneKey.UI); }
 
-  public create(): void {
+  public create(data: { player: PlayerCharacter }): void {
     const app = this.game.canvas.parentElement;
     if (!app) throw new Error('Game parent element is unavailable.');
     app.querySelector('.ashvale-hud')?.remove();
@@ -105,7 +106,7 @@ export class UIScene extends Phaser.Scene {
     const characterButton = this.utilityButton('C', t('hud.character'), () => this.togglePanel('character'));
     utility.append(inventoryButton, characterButton);
 
-    this.panels = new EquipmentPanels(this);
+    this.panels = new EquipmentPanels(this, data.player);
 
     this.notifications = element('div', 'hud-notifications');
     this.interactionNotice = element('div', 'interaction-notification');
@@ -147,7 +148,7 @@ export class UIScene extends Phaser.Scene {
     const cooldown = Math.max(0, numberValue(this.registry.get('skill1CooldownMs'), 0));
     const total = Math.max(1, numberValue(this.registry.get('skill1CooldownTotalMs'), 5_000));
     const icon = this.skillSlot.icon as HTMLImageElement;
-    icon.src = classId === 'warrior' ? heavySlashIconUrl : classId === 'archer' ? piercingShotIconUrl : magicBurstIconUrl;
+    icon.src = classId === 'warrior' ? heavySlashIconUrl : classId === 'archer' ? piercingShotIconUrl : blinkIconUrl;
     icon.title = t(`skill.${classId}` as TranslationKey);
     this.updateCooldown(this.skillSlot, cooldown, total); this.skillSlot.count.textContent = '0 MP';
     const ready = cooldown <= 0;

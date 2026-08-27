@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createGroundSurface } from '../world/GroundSurface';
 import mapUrl from '../../maps/ashen-catacombs.json?url';
 import tilesUrl from '../../assets/tilesets/ashvale-world.png';
 import type { AshvaleWorldRuntime, WorldCollisionRect } from '../world/AshvaleWorld';
@@ -12,9 +13,7 @@ export function createDungeonWorld(scene: Phaser.Scene): DungeonWorld {
   const tiles = map.addTilesetImage('ashvale-world', 'ashvale-world-tiles');
   if (!tiles) throw new Error('Dungeon tileset missing');
   scene.textures.get('ashvale-world-tiles').setFilter(Phaser.Textures.FilterMode.NEAREST);
-  const ground = map.createLayer('Ground', tiles, 0, 0, false);
-  if (ground instanceof Phaser.Tilemaps.TilemapLayer) ground.setDepth(0).setTint(0x898799);
-  map.createLayer('GroundDetails', tiles)?.setDepth(1).setAlpha(.48);
+  const groundMap = createGroundSurface(scene, true);
   const walls = map.createLayer('Walls', tiles, 0, 0, false);
   if (walls instanceof Phaser.Tilemaps.TilemapLayer) walls.setDepth(2).setTint(0x424558);
   const collisionGroup = scene.physics.add.staticGroup();
@@ -39,5 +38,5 @@ export function createDungeonWorld(scene: Phaser.Scene): DungeonWorld {
     }
     return { body, art };
   });
-  return { map, gates, collisionGroup, collisionRects, playerSpawn: { ...DUNGEON_CONFIG.playerSpawn }, slimeSpawns: [], spiderSpawns: [], width: map.widthInPixels, height: map.heightInPixels };
+  return { map, groundMap, gates, collisionGroup, collisionRects, playerSpawn: { ...DUNGEON_CONFIG.playerSpawn }, slimeSpawns: [], spiderSpawns: [], width: map.widthInPixels, height: map.heightInPixels };
 }

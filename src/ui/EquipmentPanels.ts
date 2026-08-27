@@ -1,17 +1,19 @@
 import type Phaser from 'phaser';
-import { EMPTY_STATS, EQUIPMENT_CONFIG, ITEM_DEFINITIONS, RARITY_COLORS, equipmentBonuses, type ItemInstance, type ItemStats } from '../data/equipment';
+import { EMPTY_STATS, EQUIPMENT_CONFIG, ITEM_DEFINITIONS, RARITY_COLORS, equipmentBonuses, type EquipmentSlot, type ItemInstance, type ItemStats } from '../data/equipment';
 import { PLAYER_CLASS_CONFIGS } from '../data/playerClasses';
 import { ADVANCED_SKILLS } from '../data/advancedSkills';
 import { SKILL_1_CONFIGS } from '../data/skills';
 import { getCharacterSkin } from '../data/characterSkins';
 import type { PlayerClassId } from '../entities/player/playerTypes';
-import { t } from '../i18n/LocalizationService';
+import type { PlayerCharacter } from '../entities/player/PlayerCharacter';
+import { t, type TranslationKey } from '../i18n/LocalizationService';
 import { gameProgressService } from '../systems/save/GameProgressService';
 import { notify } from '../systems/notifications/notifications';
 import { ITEM_ICONS } from './itemIcons';
+import { LivePlayerPreview } from './LivePlayerPreview';
 
 const keys = Object.keys(EMPTY_STATS) as (keyof ItemStats)[];
-function node(tag: string, className: string, text = ''): HTMLElement {
+function node<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ''): HTMLElementTagNameMap[K] {
   const element = document.createElement(tag); element.className = className; element.textContent = text; return element;
 }
 function statValue(key: keyof ItemStats, value: number): string {
@@ -25,109 +27,176 @@ export class EquipmentPanels {
   private readonly summary = node('div', 'inventory-summary');
   private readonly tooltip = node('div', 'item-tooltip');
   private readonly sheet = node('div', 'character-sheet');
+  private readonly worn = node('div', 'inventory-equipped');
+  private readonly previewHost = node('div', 'player-preview-host');
+  private readonly previewCaption = node('div', 'preview-caption');
+  private readonly potions = node('div', 'inventory-potions');
+  private preview?: LivePlayerPreview;
   private selected?: string;
   private signature = '';
   private characterSignature = '';
 
-  public constructor(private readonly scene: Phaser.Scene) {
+  public constructor(private readonly scene: Phaser.Scene, private readonly player: PlayerCharacter) {
     for (const [panel, title] of [[this.inventory, t('hud.inventoryTitle')], [this.character, t('hud.characterTitle')]] as const) {
       const heading = node('header', 'equipment-heading'); heading.append(node('h2', '', title));
-      const close = node('button', 'equipment-close', '×') as HTMLButtonElement;
+      const close = node('button', 'equipment-close', '×');
       close.type = 'button'; close.setAttribute('aria-label', t('settings.close')); close.onclick = () => this.close();
       heading.append(close); panel.append(heading);
+      panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', title);
+      panel.inert = true;
       panel.addEventListener('pointerdown', event => event.stopPropagation());
     }
     for (let index = 0; index < EQUIPMENT_CONFIG.capacity; index++) {
-      const cell = node('button', 'inventory-cell') as HTMLButtonElement;
-      cell.type = 'button'; cell.onclick = () => { this.selected = cell.dataset.itemId; this.signature = ''; this.refresh(); };
+      const cell = node('button', 'inventory-cell');
+      cell.type = 'button'; cell.onclick = () => this.select(cell.dataset.itemId);
       this.cells.push(cell); this.grid.append(cell);
     }
-    const layout = node('div', 'inventory-layout'); layout.append(this.grid, this.tooltip);
-    this.inventory.append(this.summary, layout, node('small', 'equipment-hint', t('hud.closeHint')));
-    this.character.append(this.sheet);
+    const bag = node('div', 'inventory-bag');
+    bag.append(this.summary, this.grid, this.potions);
+    const equipment = node('div', 'inventory-loadout');
+    equipment.append(node('h3', 'equipment-section-title', t('equipment.loadout')), this.previewHost, this.previewCaption, this.worn,
+      node('small', 'preview-note', t('equipment.skinOnly')));
+    const layout = node('div', 'inventory-layout'); layout.append(bag, equipment, this.tooltip);
+    this.inventory.append(layout, node('small', 'equipment-hint', t('hud.closeHint')));
+    this.character.append(this.sheet, node('small', 'equipment-hint', t('character.equipHint')));
   }
 
   public toggle(which: 'inventory' | 'character'): void {
     const selected = this[which]; const open = !selected.classList.contains('visible');
-    this.close(); if (open) selected.classList.add('visible');
+    this.close();
+    if (open) {
+      selected.classList.add('visible'); selected.inert = false;
+      if (which === 'inventory') { this.preview = new LivePlayerPreview(this.player); this.previewHost.append(this.preview.canvas); }
+    }
     this.scene.registry.set('equipmentPanelOpen', open); this.refresh();
   }
   public close(): void {
     this.inventory.classList.remove('visible'); this.character.classList.remove('visible');
+    this.inventory.inert = true; this.character.inert = true;
+    this.preview?.destroy(); this.preview = undefined;
     this.scene.registry.set('equipmentPanelOpen', false);
   }
   public destroy(): void { this.close(); this.inventory.remove(); this.character.remove(); }
 
   public refresh(): void {
-    const classId = (this.scene.registry.get('activeClass') ?? 'warrior') as PlayerClassId;
-    const signature = gameProgressService.version + ':' + classId + ':' + this.selected;
-    if (signature !== this.signature) {
-      this.signature = signature;
-      const progress = gameProgressService.snapshot;
-      this.summary.textContent = t('restore.coins', { coins: progress.coins }) + ' · ' + t('potion.health') + ': ' + progress.player.healthPotions + ' · ' + t('potion.mana') + ': ' + progress.player.manaPotions + ' · ' + progress.inventory.length + '/24';
-      this.cells.forEach((cell, index) => {
-        const item = progress.inventory[index]; cell.replaceChildren(); cell.classList.toggle('selected', !!item && item.id === this.selected);
-        cell.dataset.itemId = item?.id ?? ''; cell.style.setProperty('--rarity', item ? RARITY_COLORS[item.rarity] : '#524d39');
-        cell.setAttribute('aria-label', item ? t(`item.${item.kind}`) + ' · ' + t(`rarity.${item.rarity}`) : t('equipment.empty') + ' ' + (index + 1));
-        if (item) { cell.append(this.icon(item), node('small', 'item-level', String(item.itemLevel))); }
-      });
-      this.tooltip.replaceChildren();
-      const item = progress.inventory.find(item => item.id === this.selected);
-      if (item) this.renderTooltip(item, classId);
-      else this.tooltip.append(node('p', 'tooltip-hint', t('equipment.select')));
+    const inventoryOpen = this.inventory.classList.contains('visible');
+    const characterOpen = this.character.classList.contains('visible');
+    if (!inventoryOpen && !characterOpen) return;
+    const classId = this.player.activeClass;
+    const signature = gameProgressService.version + ':' + classId + ':' + this.player.activeSkin + ':' + this.selected;
+    if (inventoryOpen) {
+      this.preview?.refresh();
+      if (signature !== this.signature) {
+        this.signature = signature;
+        const progress = gameProgressService.snapshot;
+        this.summary.textContent = t('restore.coins', { coins: progress.coins }) + ' · ' +
+          t('equipment.capacity', { used: progress.inventory.length, total: EQUIPMENT_CONFIG.capacity });
+        this.cells.forEach((cell, index) => {
+          const item = progress.inventory[index]; cell.replaceChildren(); cell.classList.toggle('selected', !!item && item.id === this.selected);
+          cell.dataset.itemId = item?.id ?? ''; cell.style.setProperty('--rarity', item ? RARITY_COLORS[item.rarity] : '#524d39');
+          cell.setAttribute('aria-pressed', String(!!item && item.id === this.selected));
+          cell.setAttribute('aria-label', item ? t(`item.${item.kind}`) + ' · ' + t(`rarity.${item.rarity}`) : t('equipment.empty') + ' ' + (index + 1));
+          if (item) cell.append(this.icon(item), node('small', 'item-level', String(item.itemLevel)));
+        });
+        this.potions.replaceChildren();
+        for (const [kind, hotkey, count] of [['health', 'Q', progress.player.healthPotions], ['mana', 'E', progress.player.manaPotions]] as const) {
+          const stack = node('div', 'inventory-potion slot-' + kind + '-potion');
+          const glyph = node('span', 'potion-glyph'); glyph.setAttribute('aria-hidden', 'true');
+          stack.append(glyph, node('span', '', t(`potion.${kind}`)), node('b', '', '×' + count), node('kbd', '', hotkey)); this.potions.append(stack);
+        }
+        this.previewCaption.textContent = t(`class.${classId}`) + ' · ' + getCharacterSkin(this.player.activeSkin).displayName;
+        this.worn.replaceChildren();
+        for (const slot of ['weapon', 'armor'] as const) {
+          const item = progress.equipment[slot];
+          const button = node('button', 'equipment-slot'); button.type = 'button';
+          button.classList.toggle('selected', !!item && item.id === this.selected);
+          button.style.setProperty('--rarity', item ? RARITY_COLORS[item.rarity] : '#65593e');
+          button.append(node('span', 'equipment-slot-label', t(`equipment.${slot}`)));
+          if (item) button.append(this.icon(item));
+          button.append(node('span', '', item ? t(`item.${item.kind}`) : t('equipment.empty')));
+          if (item && this.inactive(item, classId)) button.append(node('small', 'stat-worse', t('equipment.inactive')));
+          button.disabled = !item;
+          button.onclick = () => this.select(item?.id);
+          this.worn.append(button);
+        }
+        this.tooltip.replaceChildren();
+        const item = [...progress.inventory, ...Object.values(progress.equipment)].find(item => item.id === this.selected);
+        if (item) this.renderTooltip(item, classId);
+        else this.tooltip.append(node('p', 'tooltip-hint', t('equipment.select')));
+      }
     }
-    const values = ['playerHealth', 'playerMaxHealth', 'playerMana', 'playerMaxMana', 'activeSkin'].map(key => this.scene.registry.get(key));
-    const characterSignature = signature + ':' + values.map(value => typeof value === 'number' ? Math.floor(value) : value).join(':');
-    if (!this.character.classList.contains('visible') || characterSignature === this.characterSignature) return;
+    if (!characterOpen) return;
+    const characterSignature = signature + ':' + [Math.ceil(this.player.currentHealth), this.player.maxHealth, Math.floor(this.player.currentMana), this.player.maxMana, this.player.finalDamage].join(':');
+    if (characterSignature === this.characterSignature) return;
     this.characterSignature = characterSignature;
     const p = gameProgressService.snapshot; const base = PLAYER_CLASS_CONFIGS[classId]; const bonus = equipmentBonuses(p.equipment, classId);
     this.sheet.replaceChildren();
-    const row = (label: string, value: string) => { const r = node('div', 'character-row'); r.append(node('span', '', label), node('b', '', value)); this.sheet.append(r); };
-    row(t('equipment.class'), t(`class.${classId}`)); row(t('hud.level', { level: p.player.level }), t('hud.xp') + ' ' + p.player.xp + '/' + this.scene.registry.get('playerXpRequired'));
-    row('HP', Math.ceil(Number(values[0])) + ' / ' + values[1]); row(t('hud.mana'), Math.floor(Number(values[2])) + ' / ' + values[3]);
-    row(t('character.baseDamage'), String(base.attackDamage)); row(t('character.finalDamage'), String(base.attackDamage + bonus.damage));
-    const skin = String(values[4] ?? ''); row(t('character.skin'), skin ? getCharacterSkin(skin).displayName : '');
-    row('1', t(SKILL_1_CONFIGS[classId].localizedNameKey));
-    for (const slot of [2, 3] as const) { const skill = ADVANCED_SKILLS[classId][slot]; row(String(slot), t(skill.name) + ' · ' + skill.mana + ' MP'); }
+    const stats = node('div', 'character-stats'), skills = node('div', 'character-skills');
+    const row = (label: string, value: string) => { const r = node('div', 'character-row'); r.append(node('span', '', label), node('b', '', value)); stats.append(r); };
+    row(t('equipment.class'), t(`class.${classId}`));
+    row(t('hud.level', { level: p.player.level }), t('hud.xp') + ' ' + p.player.xp + '/' + this.scene.registry.get('playerXpRequired'));
+    row('HP', Math.ceil(this.player.currentHealth) + ' / ' + this.player.maxHealth);
+    row(t('hud.mana'), Math.floor(this.player.currentMana) + ' / ' + this.player.maxMana);
+    row(t('character.baseDamage'), String(base.attackDamage)); row(t('character.finalDamage'), String(this.player.finalDamage));
+    row(t('character.skin'), getCharacterSkin(this.player.activeSkin).displayName);
+    stats.append(node('h3', 'equipment-section-title', t('equipment.loadout')));
     for (const slot of ['weapon', 'armor'] as const) {
-      const item = p.equipment[slot]; const r = node('div', 'equipped-row');
-      r.append(node('span', '', t(`equipment.${slot}`)));
-      if (item) {
-        r.append(this.icon(item), node('b', '', t(`item.${item.kind}`)));
-        const button = node('button', 'equipment-action', t('equipment.unequip')) as HTMLButtonElement;
-        button.onclick = () => {
-          if (!gameProgressService.unequip(slot)) notify(this.scene, t('equipment.full'));
-          else notify(this.scene, t('equipment.unequipped', { item: t(`item.${item.kind}`) }));
-          this.refresh();
-        }; r.append(button);
-        if (ITEM_DEFINITIONS[item.kind].classId && ITEM_DEFINITIONS[item.kind].classId !== classId) r.append(node('small', 'stat-worse', t('equipment.inactive')));
-      } else r.append(node('b', '', t('equipment.empty')));
-      this.sheet.append(r);
+      const item = p.equipment[slot];
+      row(t(`equipment.${slot}`), item ? t(`item.${item.kind}`) + ' · ' + t(`rarity.${item.rarity}`) : t('equipment.empty'));
+      if (item && this.inactive(item, classId)) stats.append(node('small', 'stat-worse', t('equipment.inactive')));
     }
     for (const key of keys) if (bonus[key]) row(t(`stat.${key}`), '+' + statValue(key, bonus[key]));
+    skills.append(node('h3', 'equipment-section-title', t('character.skills')));
+    const first = SKILL_1_CONFIGS[classId];
+    for (const [slot, name, mana, cooldown, id] of [
+      [1, first.localizedNameKey, 0, first.cooldownMs, first.id],
+      ...([2, 3] as const).map(slot => { const skill = ADVANCED_SKILLS[classId][slot]; return [slot, skill.name, skill.mana, skill.cooldownMs, skill.id] as const; }),
+    ] as const) {
+      const card = node('div', 'character-skill');
+      card.append(node('kbd', '', String(slot)), node('h4', '', t(name)),
+        node('p', 'skill-summary', t('character.skillCost', { mana, cooldown: (cooldown * this.player.cooldownMultiplier / 1000).toFixed(1) })),
+        node('p', '', t(`skill.role.${id}` as TranslationKey)));
+      skills.append(card);
+    }
+    this.sheet.append(stats, skills);
   }
 
+  private select(id?: string): void { this.selected = id; this.signature = ''; this.refresh(); }
+  private inactive(item: ItemInstance, classId: PlayerClassId): boolean { return !!ITEM_DEFINITIONS[item.kind].classId && ITEM_DEFINITIONS[item.kind].classId !== classId; }
   private icon(item: ItemInstance): HTMLImageElement {
     const image = document.createElement('img'); image.src = ITEM_ICONS[item.kind]; image.alt = ''; image.className = 'equipment-icon'; return image;
+  }
+  private unequip(slot: EquipmentSlot, item: ItemInstance): void {
+    if (!gameProgressService.unequip(slot)) notify(this.scene, t('equipment.full'));
+    else notify(this.scene, t('equipment.unequipped', { item: t(`item.${item.kind}`) }));
+    this.refresh();
   }
   private renderTooltip(item: ItemInstance, classId: PlayerClassId): void {
     const title = node('h3', '', t(`item.${item.kind}`)); title.style.color = RARITY_COLORS[item.rarity];
     const definition = ITEM_DEFINITIONS[item.kind];
+    const equipped = gameProgressService.snapshot.equipment[definition.slot];
+    const isEquipped = equipped?.id === item.id;
     this.tooltip.append(title, node('p', '', t(`rarity.${item.rarity}`)), node('p', '', t('equipment.level', { level: item.itemLevel })), node('p', '', t(`equipment.${definition.slot}`)));
     if (definition.classId) this.tooltip.append(node('p', '', t('equipment.class') + ': ' + t(`class.${definition.classId}`)));
     for (const key of keys) if (item.stats[key]) this.tooltip.append(node('div', 'item-stat', t(`stat.${key}`) + ' +' + statValue(key, item.stats[key])));
-    this.tooltip.append(node('h4', '', t('equipment.compare')));
-    const equipped = gameProgressService.snapshot.equipment[definition.slot];
-    for (const key of keys) {
-      const difference = item.stats[key] - (equipped?.stats[key] ?? 0);
-      if (difference) this.tooltip.append(node('div', difference > 0 ? 'stat-better' : 'stat-worse', t(`stat.${key}`) + ' ' + (difference > 0 ? '+' : '') + statValue(key, difference)));
-    }
-    const equip = node('button', 'equipment-action', t('equipment.equip')) as HTMLButtonElement;
-    equip.onclick = () => {
+    if (!isEquipped) {
+      this.tooltip.append(node('h4', '', t('equipment.compare')));
+      let changed = false;
+      for (const key of keys) {
+        const difference = item.stats[key] - (equipped?.stats[key] ?? 0);
+        if (difference) { changed = true; this.tooltip.append(node('div', difference > 0 ? 'stat-better' : 'stat-worse', t(`stat.${key}`) + ' ' + (difference > 0 ? '+' : '') + statValue(key, difference))); }
+      }
+      if (!changed) this.tooltip.append(node('p', '', t('equipment.sameStats')));
+    } else this.tooltip.append(node('h4', '', t('equipment.worn')));
+    const action = node('button', 'equipment-action', t(isEquipped ? 'equipment.unequip' : 'equipment.equip')); action.type = 'button';
+    if (!isEquipped && this.inactive(item, classId)) { action.disabled = true; this.tooltip.append(node('small', 'stat-worse', t('equipment.wrongClass'))); }
+    action.onclick = () => {
+      if (isEquipped) { this.unequip(definition.slot, item); return; }
       const result = gameProgressService.equip(item.id, classId);
       if (result === 'missing') return;
-      notify(this.scene, result === 'wrong-class' ? t('equipment.wrongClass') : t('equipment.equipped', { item: t(`item.${item.kind}`) }), 'equip', result === 'ok' ? RARITY_COLORS[item.rarity] : undefined);
+      notify(this.scene, t(result === 'wrong-class' ? 'equipment.wrongClass' : 'equipment.equipped', { item: t(`item.${item.kind}`) }), 'equip', result === 'ok' ? RARITY_COLORS[item.rarity] : undefined);
       this.refresh();
-    }; this.tooltip.append(equip);
+    };
+    this.tooltip.append(action);
   }
 }

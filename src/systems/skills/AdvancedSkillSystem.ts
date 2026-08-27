@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { ARCANE_BIND_CONTROL } from '../../data/arcane';
+import { getCharacterSkin } from '../../data/characterSkins';
 import { ADVANCED_SKILLS, type AdvancedSkillConfig } from '../../data/advancedSkills';
 import type { AttackImpact, PlayerClassId } from '../../entities/player/playerTypes';
 import type { PlayerCharacter } from '../../entities/player/PlayerCharacter';
@@ -21,6 +23,7 @@ export class AdvancedSkillSystem {
   public readonly vfx: PixelSkillVfx;
   public constructor(private readonly scene: Phaser.Scene, private readonly context: Context) {
     this.vfx = new PixelSkillVfx(scene);
+    this.ensureBindTexture();
   }
   public cooldown(classId: PlayerClassId, slot: 2 | 3): number { return Math.max(0, (this.ready.get(ADVANCED_SKILLS[classId][slot].id) ?? 0) - this.scene.time.now); }
   public activate(slot: 2 | 3, targetX: number, targetY: number): boolean {
@@ -41,7 +44,13 @@ export class AdvancedSkillSystem {
     this.ready.set(skill.id, this.scene.time.now + skill.cooldownMs * player.cooldownMultiplier);
     this.pending = { skill, x, y, rootX: player.x, rootY: player.y, angle, damage: Math.round(player.finalDamage * skill.multiplier), born: this.scene.time.now, classId: player.activeClass };
     this.vfx.anticipation(player.x, player.y, skill.color, skill.anticipationMs + 160);
-    if (slot === 3 && player.activeClass !== 'warrior') this.vfx.telegraph(x, y, skill.radius, skill.color, skill.anticipationMs + 300);
+    if (slot === 3 && player.activeClass !== 'warrior') {
+      const attack = getCharacterSkin(player.activeSkin).animations.attack;
+      const release = attack.releaseFrame ?? getCharacterSkin(player.activeSkin).attackImpactFrame;
+      const castMs = Math.max(skill.anticipationMs, release / attack.frameRate * 1000);
+      const duration = castMs + (skill.id === 'arrow-rain' ? 230 + ((skill.pulses ?? 4) - 1) * (skill.intervalMs ?? 420) : 290);
+      this.vfx.telegraph(x, y, skill.radius, skill.color, duration);
+    }
     if (skill.id === 'seismic-slam') this.vfx.telegraph(player.x, player.y, skill.radius, skill.color, 400, angle);
     return true;
   }
@@ -64,7 +73,7 @@ export class AdvancedSkillSystem {
     const { skill, rootX, rootY, x, y, angle } = cast;
     if (this.context.player.activeClass !== cast.classId) return;
     if (skill.id === 'multishot') {
-      this.vfx.cast(skill.id, rootX, rootY, 0, skill.color, angle);
+      this.vfx.bowRelease(impact.releaseX ?? rootX, impact.releaseY ?? rootY - 20, angle);
       const release = { x: impact.releaseX ?? rootX, y: impact.releaseY ?? rootY - 20 };
       for (const spread of [-12, 0, 12]) {
         const a = angle + Phaser.Math.DegToRad(spread);
@@ -73,8 +82,19 @@ export class AdvancedSkillSystem {
           [this.context.slimes.group, this.context.spiders.hurtboxGroup], target => {
             const enemy = this.context.slimes.getSlime(target) ?? this.context.spiders.get(target);
             if (enemy) this.hit(enemy, cast);
-          }, this.context.obstacles, release, { tint: skill.color, trailColor: skill.color, trailSize: 2, trailLifetimeMs: 100 });
+          }, this.context.obstacles, release, { tint: skill.color, trailColor: skill.color, trailSize: 2, trailLifetimeMs: 100, trailLength: 8, speedMultiplier: 1.12 });
       }
+    } else if (skill.id === 'arcane-bind') {
+      const release = { x: impact.releaseX ?? rootX, y: impact.releaseY ?? rootY - 18 };
+      this.context.projectiles.spawn(PLAYER_CLASS_CONFIGS.mage, impact.facing, rootX, rootY, x, y,
+        [this.context.slimes.group, this.context.spiders.hurtboxGroup], target => {
+          const enemy = this.context.slimes.getSlime(target) ?? this.context.spiders.get(target);
+          if (enemy) this.hit(enemy, cast);
+        }, this.context.obstacles, release, {
+          texture: 'skill-arcane-bind', speedMultiplier: 1.35,
+          rangeMultiplier: skill.range / (PLAYER_CLASS_CONFIGS.mage.projectileRange ?? skill.range),
+          trailColor: 0xa68dda, trailSize: 2, trailLifetimeMs: 140,
+        });
     } else if (skill.id === 'arrow-rain') {
       for (let pulse = 0; pulse < (skill.pulses ?? 4); pulse++) this.delay(pulse * (skill.intervalMs ?? 420), () => {
         this.vfx.cast(skill.id, x, y, skill.radius, skill.color, angle);
@@ -92,6 +112,21 @@ export class AdvancedSkillSystem {
       if (skill.id === 'seismic-slam') this.scene.cameras.main.shake(80, .0018, true);
     }
   }
+  private ensureBindTexture(): void {
+    const key = 'skill-arcane-bind';
+    if (this.scene.textures.exists(key)) return;
+    const g = this.scene.make.graphics({ x: 0, y: 0 }, false);
+    for (let x = 0; x < 18; x++) {
+      const height = Math.max(1, 6 - Math.abs(x - 9));
+      g.fillStyle(0x4f397e).fillRect(x, 7 - height, 1, height * 2 + 1);
+    }
+    g.fillStyle(0x8f82d9).fillRect(5, 4, 10, 7);
+    g.fillStyle(0x8eecf5).fillRect(8, 3, 3, 9).fillRect(6, 6, 10, 3);
+    g.fillStyle(0xf0ffff).fillRect(10, 6, 4, 2);
+    g.generateTexture(key, 20, 15); g.destroy();
+    this.scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+  }
+
   private area(cast: Cast, x: number, y: number): void {
     // Arcade overlap gives real hurtbox contact; final radial/cone test avoids rectangular AoE corners.
     const radius = cast.skill.radius;
@@ -113,7 +148,10 @@ export class AdvancedSkillSystem {
     if (enemy.currentHealth <= 0 || !enemy.visual.active) return;
     if (!enemy.takeDamage(cast.damage, cast.rootX, cast.rootY)) return;
     const boss = 'isBoss' in enemy && enemy.isBoss;
-    if (cast.skill.slow) enemy.modifiers.slow(cast.skill.slow * (boss ? .4 : 1), cast.skill.slowMs ?? 2400);
+    if (cast.skill.id === 'arcane-bind') {
+      if (!boss && enemy.currentHealth > 0) enemy.applyStun(enemy.elite ? ARCANE_BIND_CONTROL.eliteMs : ARCANE_BIND_CONTROL.normalMs);
+      this.vfx.bindImpact(enemy.visual.x, enemy.visual.y);
+    }
     if (cast.skill.id === 'seismic-slam' && !boss) enemy.modifiers.stagger(350);
     this.vfx.impact(enemy.visual.x, enemy.visual.y - 10, cast.skill.color);
   }

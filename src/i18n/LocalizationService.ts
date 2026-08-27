@@ -39,7 +39,7 @@ const dictionaries = {
     'heal.healthLabel': 'Здоровье:', 'heal.restoreLabel': 'Восстановить', 'heal.costLabel': 'Стоимость:', 'heal.coinsUnit': 'монет',
     'heal.cost': 'Стоимость: {coins} монет', 'heal.action': 'ВЫЛЕЧИТЬ',
     'heal.notNeeded': 'Лечение не требуется', 'heal.insufficient': 'Недостаточно монет',
-    'skill.warrior': 'ТЯЖЁЛЫЙ УДАР', 'skill.archer': 'ПРОБИВНОЙ ВЫСТРЕЛ', 'skill.mage': 'МАГИЧЕСКИЙ ВЗРЫВ',
+    'skill.warrior': 'ТЯЖЁЛЫЙ УДАР', 'skill.archer': 'ПРОНЗАЮЩИЙ ВЫСТРЕЛ', 'skill.mage': 'АРКАННЫЙ СКАЧОК',
     'region.slime': 'СУМЕРЕЧНАЯ РОЩА', 'region.hub': 'РУИНЫ ЭШВЕЙЛА', 'region.spider': 'ПАУТИННАЯ ЛОЩИНА',
   },
   en: {
@@ -77,7 +77,7 @@ const dictionaries = {
     'heal.healthLabel': 'Health:', 'heal.restoreLabel': 'Restore', 'heal.costLabel': 'Cost:', 'heal.coinsUnit': 'coins',
     'heal.cost': 'Cost: {coins} coins', 'heal.action': 'HEAL',
     'heal.notNeeded': 'No treatment needed', 'heal.insufficient': 'Not enough coins',
-    'skill.warrior': 'HEAVY SLASH', 'skill.archer': 'PIERCING SHOT', 'skill.mage': 'MAGIC BURST',
+    'skill.warrior': 'HEAVY SLASH', 'skill.archer': 'PIERCING SHOT', 'skill.mage': 'ARCANE BLINK',
     'region.slime': 'TWILIGHT GLADE', 'region.hub': 'ASHVALE RUINS', 'region.spider': 'EMBERWEB HOLLOW',
   },
 } as const;

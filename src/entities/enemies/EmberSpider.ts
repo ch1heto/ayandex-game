@@ -32,7 +32,7 @@ export class EmberSpider {
   public update(time: number): void {
     this.syncHurtbox();
     this.modifiers.update(time);
-    if (this.modifiers.staggered && this.state !== 'dead') { this.visual.setVelocity(0); return; }
+    if ((this.modifiers.staggered || this.modifiers.stunned) && this.state !== 'dead') { this.visual.setVelocity(0); return; }
     this.visual.setDepth(Math.floor(this.visual.y)); if (this.state === 'dead' || this.state === 'attack') return;
     const distance = Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.player.x, this.player.y);
     if (distance < 43 && time >= this.nextAttackAt) { this.state = 'attack'; this.impact = false; this.visual.setVelocity(0).play(EmberSpiderAnimation.Attack, true); return; }
@@ -41,7 +41,7 @@ export class EmberSpider {
   }
   public takeDamage(damage: number, sourceX: number, sourceY: number): boolean {
     if (this.state === 'dead') return false; this.health = Math.max(0, this.health - damage); this.onEngage(this);
-    if (!this.health) { this.state = 'dead'; (this.visual.body as Phaser.Physics.Arcade.Body).enable = false; (this.hurtbox.body as Phaser.Physics.Arcade.Body).enable = false; this.hurtbox.setActive(false); this.visual.setVelocity(0).play(EmberSpiderAnimation.Death, true); return true; }
+    if (!this.health) { this.modifiers.clearControl(); this.state = 'dead'; (this.visual.body as Phaser.Physics.Arcade.Body).enable = false; (this.hurtbox.body as Phaser.Physics.Arcade.Body).enable = false; this.hurtbox.setActive(false); this.visual.setVelocity(0).play(EmberSpiderAnimation.Death, true); return true; }
     const push = new Phaser.Math.Vector2(this.visual.x - sourceX, this.visual.y - sourceY).normalize().scale(65); this.visual.setVelocity(push.x, push.y).setTint(0xffc08a).setTintMode(Phaser.TintModes.FILL); this.scene.time.delayedCall(70, () => this.visual.active && this.visual.clearTint()); return true;
   }
   public applyKnockback(sourceX: number, sourceY: number, speed: number): void {
@@ -50,12 +50,20 @@ export class EmberSpider {
     if (direction.lengthSq() > 0) direction.normalize().scale(speed);
     this.visual.setVelocity(direction.x, direction.y);
   }
+  public applyStun(duration: number): boolean {
+    if (this.isBoss || this.state === 'dead' || !this.modifiers.stun(duration)) return false;
+    this.state = 'chase'; this.impact = true;
+    this.nextAttackAt = this.scene.time.now + duration + 200;
+    this.visual.setVelocity(0).play(EmberSpiderAnimation.Idle);
+    this.modifiers.update(this.scene.time.now);
+    return true;
+  }
   public get isBoss(): boolean { return false; }
   public get bossPhase(): number { return 1; }
   public get currentHealth(): number { return this.health; }
   public get maxHealth(): number { return this.modifiers.maxHealth; }
   public destroy(): void { this.visual.off(Phaser.Animations.Events.ANIMATION_UPDATE, this.onFrame, this); this.visual.off(Phaser.Animations.Events.ANIMATION_COMPLETE, this.onComplete, this); this.modifiers.destroy(); this.hurtbox.destroy(); this.visual.destroy(); }
   protected syncHurtbox(): void { (this.hurtbox.body as Phaser.Physics.Arcade.Body).reset(this.visual.x, this.visual.y + COMBAT_HURTBOX_OFFSET_Y); }
-  private onFrame(animation: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame): void { if (this.state !== 'attack' || this.impact || animation.key !== EmberSpiderAnimation.Attack || Number(frame.textureFrame) !== 2) return; this.impact = true; if (Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.player.x, this.player.y) <= 50 && this.player.takeDamage(Math.round(14 * this.modifiers.damageMultiplier), this.visual.x, this.visual.y)) this.onEngage(this); }
+  private onFrame(animation: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame): void { if (this.modifiers.stunned || this.state !== 'attack' || this.impact || animation.key !== EmberSpiderAnimation.Attack || Number(frame.textureFrame) !== 2) return; this.impact = true; if (Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.player.x, this.player.y) <= 50 && this.player.takeDamage(Math.round(14 * this.modifiers.damageMultiplier), this.visual.x, this.visual.y)) this.onEngage(this); }
   private onComplete(animation: Phaser.Animations.Animation): void { if (animation.key === EmberSpiderAnimation.Death && this.state === 'dead') { this.onDeath(this, this.visual.x, this.visual.y); this.destroy(); return; } if (animation.key === EmberSpiderAnimation.Attack && this.state === 'attack') { this.state = 'chase'; this.nextAttackAt = this.scene.time.now + 1200; } }
 }

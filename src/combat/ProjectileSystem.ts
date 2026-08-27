@@ -25,6 +25,7 @@ export type ProjectileOptions = {
   onExpire?: (x: number, y: number) => void;
   trailColor?: number;
   trailSize?: number;
+  trailLength?: number;
   trailLifetimeMs?: number;
   scale?: number;
 };
@@ -38,6 +39,7 @@ const MUZZLE_OFFSET: Record<Direction, { x: number; y: number }> = {
 
 export class ProjectileSystem {
   private readonly active: ProjectileRecord[] = [];
+  private readonly trailPixels = new Set<{ art: Phaser.GameObjects.Graphics; timer: Phaser.Time.TimerEvent }>();
 
   public constructor(private readonly scene: Phaser.Scene) {}
 
@@ -97,9 +99,9 @@ export class ProjectileSystem {
     }
     if (options.trailColor !== undefined) {
       record.trail = this.scene.time.addEvent({
-        delay: 42,
+        delay: options.trailLength ? 28 : 42,
         loop: true,
-        callback: () => this.createTrailPixel(record, options.trailColor!, options.trailSize ?? 3, options.trailLifetimeMs ?? 110),
+        callback: () => this.createTrailPixel(record, options.trailColor!, options.trailSize ?? 3, options.trailLifetimeMs ?? 110, options.trailLength ?? 0),
       });
     }
     this.active.push(record);
@@ -115,12 +117,19 @@ export class ProjectileSystem {
 
   public destroy(): void {
     for (const projectile of [...this.active]) this.remove(projectile);
+    this.trailPixels.forEach(pixel => { pixel.timer.remove(false); pixel.art.destroy(); }); this.trailPixels.clear();
   }
 
-  private createTrailPixel(projectile: ProjectileRecord, color: number, size: number, lifetimeMs: number): void {
-    if (!projectile.sprite.active) return;
-    const pixel = this.scene.add.rectangle(Math.round(projectile.sprite.x), Math.round(projectile.sprite.y), size, size, color, .78).setDepth(projectile.sprite.depth - 1);
-    this.scene.time.delayedCall(lifetimeMs, () => pixel.destroy());
+  private createTrailPixel(projectile: ProjectileRecord, color: number, size: number, lifetimeMs: number, length: number): void {
+    if (!projectile.sprite.active || this.trailPixels.size >= 96) return;
+    const art = this.scene.add.graphics().setPosition(Math.round(projectile.sprite.x), Math.round(projectile.sprite.y)).setDepth(projectile.sprite.depth - 1);
+    const angle = projectile.sprite.rotation;
+    for (let offset = 0; offset <= length; offset += 2) {
+      art.fillStyle(color, .8 - (length ? offset / length * .4 : 0));
+      art.fillRect(Math.round(-Math.cos(angle) * offset), Math.round(-Math.sin(angle) * offset), size, size);
+    }
+    const timer = this.scene.time.delayedCall(lifetimeMs, () => { art.destroy(); this.trailPixels.delete(pixel); });
+    const pixel = { art, timer }; this.trailPixels.add(pixel);
   }
 
   private remove(projectile: ProjectileRecord, expired = false): void {

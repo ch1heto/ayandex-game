@@ -180,7 +180,7 @@ export class GameScene extends Phaser.Scene {
     this.registry.set('worldHeight', this.worldRuntime.height);
     this.refreshProgressRegistry();
     this.refreshSkillRegistry();
-    this.scene.launch(SceneKey.UI);
+    this.scene.launch(SceneKey.UI, { player: this.player });
     this.updateRegionTitle(true);
 
     this.removePauseListener = yandexGamesService.onPause(() => this.scene.pause());
@@ -201,7 +201,7 @@ export class GameScene extends Phaser.Scene {
     this.spiders.update(time);
     this.coinDrops.update(time);
     this.restoration?.update();
-    this.equipmentLoot.update(time); this.advanced.update(time);
+    this.equipmentLoot.update(time); this.skills.update(time); this.advanced.update(time);
     this.entrance?.update(time); this.dungeon?.update(time);
     if (this.entrance?.near(this.player.x, this.player.y)) this.registry.set('interactionPromptKey', 'dungeon.enter');
     this.syncEquipment();
@@ -568,6 +568,7 @@ export class GameScene extends Phaser.Scene {
     this.restoration?.destroy();
     this.coinDrops?.destroy();
     this.player?.destroy();
+    this.worldRuntime?.groundMap?.destroy();
     this.worldRuntime?.map.destroy(); this.worldRuntime?.collisionGroup.destroy(true);
     this.scene.stop(SceneKey.UI);
   }

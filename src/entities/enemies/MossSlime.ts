@@ -59,7 +59,7 @@ export class MossSlime {
   public update(time: number): void {
     this.visual.setDepth(Math.floor(this.visual.y));
     this.modifiers.update(time);
-    if (this.modifiers.staggered && this.state !== 'dead') { this.body.setVelocity(0); return; }
+    if ((this.modifiers.staggered || this.modifiers.stunned) && this.state !== 'dead') { this.body.setVelocity(0); return; }
     if (this.state === 'dead' || this.state === 'attack') return;
 
     if (this.state === 'hurt') {
@@ -111,6 +111,15 @@ export class MossSlime {
     this.scene.time.delayedCall(75, () => {
       if (this.visual.active) this.visual.clearTint();
     });
+    return true;
+  }
+
+  public applyStun(duration: number): boolean {
+    if (this.state === 'dead' || !this.modifiers.stun(duration)) return false;
+    this.state = 'chase'; this.impactTriggered = true;
+    this.nextAttackAt = this.scene.time.now + duration + 200;
+    this.body.setVelocity(0); this.play(MossSlimeAnimation.Idle);
+    this.modifiers.update(this.scene.time.now);
     return true;
   }
 
@@ -189,6 +198,7 @@ export class MossSlime {
 
   private die(): void {
     this.state = 'dead';
+    this.modifiers.clearControl();
     this.body.setVelocity(0, 0);
     this.body.enable = false;
     this.impactTriggered = true;
@@ -221,7 +231,7 @@ export class MossSlime {
   }
 
   private handleAnimationUpdate(animation: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame): void {
-    if (this.state !== 'attack' || this.impactTriggered || animation.key !== MossSlimeAnimation.Attack) return;
+    if (this.modifiers.stunned || this.state !== 'attack' || this.impactTriggered || animation.key !== MossSlimeAnimation.Attack) return;
     if (Number(frame.textureFrame) !== ATTACK_IMPACT_FRAME) return;
     this.impactTriggered = true;
     const distance = Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.player.x, this.player.y);

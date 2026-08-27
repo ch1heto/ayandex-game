@@ -1,13 +1,15 @@
 // Run after the documented tsc test compilation. Uses isolated in-memory storage.
+// ASHVALE_QA_DIR can point at an ignored compilation directory.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { GameProgressService } = require('../artifacts/content-qa/node/systems/save/GameProgressService.js');
-const { rollItem, equipmentBonuses, ITEM_RARITIES, EQUIPMENT_CONFIG } = require('../artifacts/content-qa/node/data/equipment.js');
-const { validateItem } = require('../artifacts/content-qa/node/systems/equipment/itemValidation.js');
-const { ADVANCED_SKILLS } = require('../artifacts/content-qa/node/data/advancedSkills.js');
-const { SKILL_1_CONFIGS } = require('../artifacts/content-qa/node/data/skills.js');
-const { ELITE_CONFIG } = require('../artifacts/content-qa/node/data/elites.js');
+const qa = file => require(path.join(process.env.ASHVALE_QA_DIR || path.join(__dirname, '../artifacts/content-qa/node'), file));
+const { GameProgressService } = qa('systems/save/GameProgressService.js');
+const { rollItem, equipmentBonuses, ITEM_RARITIES, EQUIPMENT_CONFIG } = qa('data/equipment.js');
+const { validateItem } = qa('systems/equipment/itemValidation.js');
+const { ADVANCED_SKILLS } = qa('data/advancedSkills.js');
+const { SKILL_1_CONFIGS } = qa('data/skills.js');
+const { ELITE_CONFIG } = qa('data/elites.js');
 let checks = 0;
 function test(name, action) { action(); checks++; console.log('PASS ' + name); }
 let storage = new Map();
@@ -59,9 +61,10 @@ test('normal rarity distribution and item levels match config; boss always Rare+
   ITEM_RARITIES.forEach((rarity,index)=>assert(Math.abs(counts[rarity]/20000-EQUIPMENT_CONFIG.rarityWeights.normal[index]/100)<.02));
   for(let i=0;i<300;i++) assert(ITEM_RARITIES.indexOf(rollItem(1,'boss',rng).rarity)>=2);
 });
-test('six paid skills and unchanged free Skill 1 balance', () => {
+test('six paid skills, free Skill 1 cadence and separate archer/mage roles', () => {
   for(const classId of ['warrior','archer','mage']) { for(const slot of [2,3]) { const c=ADVANCED_SKILLS[classId][slot]; assert(c.mana>0); assert(c.cooldownMs>=6000); } assert.equal(SKILL_1_CONFIGS[classId].cooldownMs,5000); }
-  assert.equal(SKILL_1_CONFIGS.warrior.damageMultiplier,1.9); assert.equal(SKILL_1_CONFIGS.archer.damageMultiplier,2); assert.equal(SKILL_1_CONFIGS.mage.damageMultiplier,2);
+  assert.equal(SKILL_1_CONFIGS.warrior.damageMultiplier,1.9); assert.equal(SKILL_1_CONFIGS.archer.damageMultiplier,2); assert.equal(SKILL_1_CONFIGS.mage.damageMultiplier,0);
+  assert.equal(SKILL_1_CONFIGS.archer.projectile.maxHits,3); assert(SKILL_1_CONFIGS.archer.projectile.speedMultiplier>1.5);
   assert.equal(ELITE_CONFIG.spawnChance,.07);
 });
 test('four Tiled rooms, three gates, all four reachable only after gates open', () => {
@@ -79,4 +82,58 @@ test('four Tiled rooms, three gates, all four reachable only after gates open', 
   const closed=reachable(false),open=reachable(true);
   assert(!closed.has(11*map.width+36)); for(const x of [5,33,61,89]) assert(open.has(11*map.width+x));
 });
-console.log(checks+' data/config/map checks passed. This is not browser runtime or visual QA.');
+const { blinkDestination } = qa('systems/skills/blinkDestination.js');
+const { EnemyControl } = qa('entities/enemies/EnemyControl.js');
+const { BLINK_CONFIG, ARCANE_BIND_CONTROL } = qa('data/arcane.js');
+const footprint={left:-9,top:-13,width:18,height:13}, bounds={x:0,y:0,width:500,height:500};
+const blink=(start,target,rects=[])=>blinkDestination(start,target,BLINK_CONFIG.range,footprint,bounds,rects,BLINK_CONFIG.clearance);
+test('blink clamps to aim/range/world, handles a zero aim and stops before a thin wall',()=>{
+  assert.deepEqual(blink({x:50,y:50},{x:70,y:50}),{x:70,y:50});
+  assert.deepEqual(blink({x:50,y:50},{x:500,y:50}),{x:202,y:50});
+  assert.deepEqual(blink({x:50,y:50},{x:50,y:50}),{x:50,y:50});
+  assert(blink({x:50,y:50},{x:-1000,y:50}).x>=11);
+  const wall={x:120,y:0,width:1,height:500};
+  assert(blink({x:50,y:50},{x:500,y:50},[wall]).x<=109);
+});
+test('blink respects closed gates and enemy bodies; an opened gate no longer blocks',()=>{
+  const start={x:50,y:100},target={x:300,y:100};
+  const gate={x:130,y:50,width:32,height:128};
+  assert(blink(start,target,[gate]).x<130);
+  assert.equal(blink(start,target,[]).x,202);
+  const enemy={x:100,y:100,width:42,height:21};
+  const end=blink({x:50,y:50},{x:200,y:200},[enemy]);
+  assert(end.x+9<100 || end.y<100);
+  // Escape away from an already-touching body's margin is permitted.
+  assert(blink({x:89,y:110},{x:40,y:110},[enemy]).x<89);
+});
+test('1200 swept blink paths never cross walls or finish outside world bounds',()=>{
+  let seed=903; const rng=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  const overlaps=(p,r,pad=0)=>p.x+footprint.left+footprint.width>r.x-pad&&p.x+footprint.left<r.x+r.width+pad&&p.y+footprint.top+footprint.height>r.y-pad&&p.y+footprint.top<r.y+r.height+pad;
+  for(let i=0;i<1200;i++){
+    const obstacle={x:50+rng()*320,y:50+rng()*320,width:2+rng()*60,height:2+rng()*60};
+    const start={x:20+rng()*460,y:25+rng()*450}; if(overlaps(start,obstacle,4)){i--;continue;}
+    const end=blink(start,{x:rng()*900-200,y:rng()*900-200},[obstacle]);
+    assert(end.x>=11&&end.x<=489&&end.y>=15&&end.y<=498);
+    assert(Math.hypot(end.x-start.x,end.y-start.y)<=BLINK_CONFIG.range+1);
+    for(let step=1;step<=60;step++) assert(!overlaps({x:start.x+(end.x-start.x)*step/60,y:start.y+(end.y-start.y)*step/60},obstacle));
+  }
+});
+test('stun expires on scene time, cannot be extended and has a recovery window',()=>{
+  for(const duration of [ARCANE_BIND_CONTROL.normalMs,ARCANE_BIND_CONTROL.eliteMs]){
+    const state=new EnemyControl(); assert(state.apply(100,duration,ARCANE_BIND_CONTROL.recoveryMs));
+    assert(state.isStunned(100+duration-1)); assert(!state.apply(200,duration,2400));
+    assert(!state.isStunned(100+duration)); assert(!state.apply(100+duration,duration,2400));
+    assert(state.apply(100+duration+2400,duration,2400));
+    state.clear(); assert(!state.isStunned(101)); assert(state.apply(101,duration,2400));
+  }
+});
+test('visual ground retains authored dimensions and every void/floor cell',()=>{
+  for(const [source,surface] of [['ashvale-world','ashvale-ground'],['ashen-catacombs','catacombs-ground']]){
+    const read=name=>JSON.parse(fs.readFileSync(path.join(__dirname,'../maps/'+name+'.json'),'utf8'));
+    const a=read(source),b=read(surface); assert.equal(a.width,b.width);assert.equal(a.height,b.height);
+    const ground=a.layers.find(l=>l.name==='Ground').data,visual=b.layers[0].data;
+    assert.equal(ground.length,visual.length);
+    ground.forEach((gid,index)=>assert.equal(gid===0,visual[index]===0));
+  }
+});
+console.log(checks+' data/config/map/geometry checks passed. This is not browser runtime or visual QA.');

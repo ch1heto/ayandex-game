@@ -1,4 +1,9 @@
 import Phaser from 'phaser';
+import { BLINK_CONFIG } from '../../data/arcane';
+import { blinkDestination, type Rect } from './blinkDestination';
+import { PixelSkillVfx } from './PixelSkillVfx';
+import { t } from '../../i18n/LocalizationService';
+import { notify } from '../notifications/notifications';
 
 import { ProjectileSystem } from '../../combat/ProjectileSystem';
 import { PLAYER_CLASS_CONFIGS } from '../../data/playerClasses';
@@ -20,7 +25,7 @@ type SkillContext = {
   projectiles: ProjectileSystem;
   slimes: MossSlimeSpawner;
   spiders: EmberSpiderSpawner;
-  obstacles: Phaser.Types.Physics.Arcade.ArcadeColliderType;
+  obstacles: Phaser.Physics.Arcade.StaticGroup;
 };
 
 const HEAVY_SLASH_INNER_RADIUS = 18;
@@ -36,17 +41,30 @@ export class SkillSystem {
   private readonly readyAt: Record<PlayerClassId, number> = { warrior: 0, archer: 0, mage: 0 };
   private pending?: PendingSkillActivation;
   private heavySlashTelegraph?: Phaser.GameObjects.Graphics;
+  private readonly vfx: PixelSkillVfx;
 
   public constructor(private readonly scene: Phaser.Scene, private readonly context: SkillContext) {
     this.ensurePiercingShotTexture();
-    this.ensureMagicBurstTexture();
+    this.vfx = new PixelSkillVfx(scene);
   }
 
   public activate(targetX: number, targetY: number): boolean {
     const classId = this.context.player.activeClass;
     const config = SKILL_1_CONFIGS[classId];
     if (this.scene.time.now < this.readyAt[classId]) return false;
+    if (config.behavior === 'arcane-blink') {
+      if (Math.hypot(targetX - this.context.player.x, targetY - this.context.player.y) < 1) {
+        const direction = this.context.player.direction;
+        targetX = this.context.player.x + (direction === 'left' ? -BLINK_CONFIG.range : direction === 'right' ? BLINK_CONFIG.range : 0);
+        targetY = this.context.player.y + (direction === 'up' ? -BLINK_CONFIG.range : direction === 'down' ? BLINK_CONFIG.range : 0);
+      }
+      const destination = this.resolveBlink(targetX, targetY);
+      if (Math.hypot(destination.x - this.context.player.x, destination.y - this.context.player.y) < BLINK_CONFIG.minimumTravel) {
+        notify(this.scene, t('skill.blinkBlocked'), 'blink-blocked'); return false;
+      }
+    }
     if (!this.context.player.useSkillAttack(targetX, targetY, config.id)) return false;
+    if (config.behavior === 'arcane-blink') this.vfx.blinkAnticipation(this.context.player.x, this.context.player.y);
     this.readyAt[classId] = this.scene.time.now + config.cooldownMs * this.context.player.cooldownMultiplier;
     if (config.behavior === 'heavy-slash') {
       const sector = createHeavySlashSector(
@@ -77,9 +95,11 @@ export class SkillSystem {
       if (activation.heavySlashSector) this.executeHeavySlash(activation.heavySlashSector, config);
     }
     else if (config.behavior === 'piercing-shot') this.executePiercingShot(impact, config);
-    else this.executeMagicBurst(impact, config);
+    else this.executeBlink(impact);
     return true;
   }
+
+  public update(time: number): void { this.vfx.update(time); }
 
   public getCooldownRemaining(classId: PlayerClassId): number {
     return Math.max(0, this.readyAt[classId] - this.scene.time.now);
@@ -94,6 +114,7 @@ export class SkillSystem {
   public cancelPending(): void {
     this.pending = undefined;
     this.clearHeavySlashTelegraph();
+    this.vfx.destroy();
   }
 
   private showHeavySlashTelegraph(sector: HeavySlashSector): void {
@@ -158,11 +179,12 @@ export class SkillSystem {
 
   private executePiercingShot(impact: AttackImpact, skill: SkillConfig): void {
     const base = PLAYER_CLASS_CONFIGS.archer;
+    const damage = this.skillDamage(skill);
+    this.vfx.bowRelease(impact.releaseX ?? impact.rootX, impact.releaseY ?? impact.rootY - 20, Math.atan2(impact.aimY, impact.aimX));
     this.context.projectiles.spawn(
       base, impact.facing, impact.rootX, impact.rootY, impact.targetX, impact.targetY,
       [this.context.slimes.group, this.context.spiders.hurtboxGroup],
       (target) => {
-        const damage = this.skillDamage(skill);
         const slime = this.context.slimes.getSlime(target);
         if (slime) slime.takeDamage(damage, impact.rootX, impact.rootY);
         else this.context.spiders.get(target)?.takeDamage(damage, impact.rootX, impact.rootY);
@@ -173,51 +195,38 @@ export class SkillSystem {
       impact.releaseX !== undefined && impact.releaseY !== undefined ? { x: impact.releaseX, y: impact.releaseY } : undefined,
       {
         texture: 'skill-archer-piercing-arrow', maxHits: skill.projectile?.maxHits,
-        rangeMultiplier: skill.rangeMultiplier, speedMultiplier: 1.08,
-        trailColor: 0xffe98f, trailSize: 5, trailLifetimeMs: 150,
+        rangeMultiplier: skill.rangeMultiplier, speedMultiplier: skill.projectile?.speedMultiplier,
+        trailColor: 0x8aefd1, trailSize: 2, trailLifetimeMs: 120, trailLength: 18,
       },
     );
   }
 
-  private executeMagicBurst(impact: AttackImpact, skill: SkillConfig): void {
-    const base = PLAYER_CLASS_CONFIGS.mage;
-    let directTarget: Phaser.GameObjects.GameObject | undefined;
-    const explode = (x: number, y: number) => this.magicBurst(x, y, skill, directTarget);
-    this.context.projectiles.spawn(
-      base, impact.facing, impact.rootX, impact.rootY, impact.targetX, impact.targetY,
-      [this.context.slimes.group, this.context.spiders.hurtboxGroup],
-      (target) => {
-        directTarget = target;
-        const damage = this.skillDamage(skill);
-        const slime = this.context.slimes.getSlime(target);
-        if (slime) slime.takeDamage(damage, impact.rootX, impact.rootY);
-        else this.context.spiders.get(target)?.takeDamage(damage, impact.rootX, impact.rootY);
-        const position = target as unknown as Phaser.GameObjects.Components.Transform;
-        explode(position.x, position.y);
-      },
-      this.context.obstacles,
-      impact.releaseX !== undefined && impact.releaseY !== undefined ? { x: impact.releaseX, y: impact.releaseY } : undefined,
-      {
-        texture: 'skill-mage-burst-projectile', maxHits: 1, tint: skill.color,
-        trailColor: 0xe8c6ff, trailSize: 5, trailLifetimeMs: 150, onExpire: explode, scale: 1.5,
-      },
-    );
+  private resolveBlink(targetX: number, targetY: number): { x: number; y: number } {
+    const player = this.context.player;
+    const body = player.physicsRoot.body as Phaser.Physics.Arcade.Body;
+    const rects: Rect[] = [];
+    const bodies = [...this.context.obstacles.getChildren(), ...this.context.slimes.group.getChildren(), ...this.context.spiders.group.getChildren()];
+    for (const object of bodies) {
+      const candidate = (object as Phaser.GameObjects.Zone).body;
+      if ((candidate instanceof Phaser.Physics.Arcade.Body || candidate instanceof Phaser.Physics.Arcade.StaticBody) && candidate.enable && object.active) rects.push({ x: candidate.x, y: candidate.y, width: candidate.width, height: candidate.height });
+    }
+    return blinkDestination({ x: player.x, y: player.y }, { x: targetX, y: targetY }, BLINK_CONFIG.range,
+      { left: body.offset.x - player.physicsRoot.displayOriginX, top: body.offset.y - player.physicsRoot.displayOriginY, width: body.width, height: body.height },
+      this.scene.physics.world.bounds, rects, BLINK_CONFIG.clearance);
   }
 
-  private magicBurst(x: number, y: number, skill: SkillConfig, directTarget?: Phaser.GameObjects.GameObject): void {
-    const radius = skill.projectile?.splashRadius ?? 58;
-    const damage = Math.round(this.skillDamage(skill) * (skill.projectile?.splashMultiplier ?? 0.55));
-    const directSpider = directTarget ? this.context.spiders.get(directTarget) : undefined;
-    this.context.slimes.forEach((slime) => {
-      if (slime.visual !== directTarget && Phaser.Math.Distance.Between(x, y, slime.visual.x, slime.visual.y) <= radius) slime.takeDamage(damage, x, y);
-    });
-    this.context.spiders.forEach((spider) => {
-      if (spider !== directSpider && Phaser.Math.Distance.Between(x, y, spider.visual.x, spider.visual.y) <= radius) spider.takeDamage(damage, x, y);
-    });
-    [8, 24, 40, radius].forEach((ringRadius, step) => {
-      this.scene.time.delayedCall(step * 38, () => this.pixelRing(x, y, ringRadius, skill.color));
-    });
-    this.impactBurst(x, y, skill.color);
+  private executeBlink(impact: AttackImpact): void {
+    const player = this.context.player;
+    if (player.currentHealth <= 0) return;
+    // Recheck live bodies at release: a gate or enemy may have moved during anticipation.
+    const destination = this.resolveBlink(impact.targetX, impact.targetY);
+    if (Math.hypot(destination.x - player.x, destination.y - player.y) < BLINK_CONFIG.minimumTravel) {
+      this.readyAt.mage = this.scene.time.now;
+      notify(this.scene, t('skill.blinkBlocked'), 'blink-blocked');
+      return;
+    }
+    this.vfx.blink(player.visual, player.x, player.y, destination.x, destination.y);
+    player.setPosition(destination.x, destination.y);
   }
 
   private drawHeavySlashVfx(sector: HeavySlashSector, color: number): void {
@@ -302,14 +311,14 @@ export class SkillSystem {
     const key = 'skill-archer-piercing-arrow';
     if (this.scene.textures.exists(key)) return;
     const graphics = this.scene.make.graphics({ x: 0, y: 0 }, false);
-    graphics.fillStyle(0x3b2617, 1);
+    graphics.fillStyle(0x173c34, 1);
     graphics.fillRect(0, 3, 25, 5);
     graphics.fillRect(21, 1, 6, 9);
-    graphics.fillStyle(0xd59232, 1);
+    graphics.fillStyle(0x4fbb9e, 1);
     graphics.fillRect(1, 4, 22, 3);
     graphics.fillStyle(0xffefad, 1);
     graphics.fillRect(5, 4, 20, 1);
-    graphics.fillStyle(0xffc84f, 1);
+    graphics.fillStyle(0x90f1c4, 1);
     graphics.fillTriangle(22, 1, 31, 5, 22, 10);
     graphics.fillStyle(0xfff0a6, 1);
     graphics.fillTriangle(24, 3, 31, 5, 24, 7);
@@ -318,33 +327,5 @@ export class SkillSystem {
     this.scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
   }
 
-  private pixelRing(x: number, y: number, radius: number, color: number): void {
-    const pixels: Phaser.GameObjects.Rectangle[] = [];
-    for (let index = 0; index < 16; index += 1) {
-      const angle = index / 16 * Math.PI * 2;
-      pixels.push(this.scene.add.rectangle(
-        Math.round(x + Math.cos(angle) * radius),
-        Math.round(y + Math.sin(angle) * radius),
-        4, 4, color,
-      ).setDepth(Math.floor(y) + 4));
-    }
-    this.scene.time.delayedCall(48, () => pixels.forEach((pixel) => pixel.destroy()));
-  }
 
-  private ensureMagicBurstTexture(): void {
-    const key = 'skill-mage-burst-projectile';
-    if (this.scene.textures.exists(key)) return;
-    const graphics = this.scene.make.graphics({ x: 0, y: 0 }, false);
-    graphics.fillStyle(0x4d246e, 1);
-    graphics.fillRect(1, 3, 15, 6);
-    graphics.fillRect(4, 1, 8, 10);
-    graphics.fillStyle(0xd7a0ff, 1);
-    graphics.fillRect(4, 3, 10, 6);
-    graphics.fillRect(7, 2, 5, 8);
-    graphics.fillStyle(0xfff0ff, 1);
-    graphics.fillRect(8, 4, 7, 2);
-    graphics.generateTexture(key, 18, 12);
-    graphics.destroy();
-    this.scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
-  }
 }

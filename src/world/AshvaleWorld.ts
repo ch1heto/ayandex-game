@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { preloadGroundSurfaces, createGroundSurface } from './GroundSurface';
 
 import worldMapUrl from '../../maps/ashvale-world.json?url';
 import worldTilesUrl from '../../assets/tilesets/ashvale-world.png';
@@ -112,6 +113,7 @@ export type WorldSpawnPoint = { x: number; y: number };
 
 export type AshvaleWorldRuntime = {
   map: Phaser.Tilemaps.Tilemap;
+  groundMap?: Phaser.Tilemaps.Tilemap;
   collisionGroup: Phaser.Physics.Arcade.StaticGroup;
   collisionRects: WorldCollisionRect[];
   playerSpawn: WorldSpawnPoint;
@@ -122,6 +124,7 @@ export type AshvaleWorldRuntime = {
 };
 
 export function preloadAshvaleWorld(scene: Phaser.Scene): void {
+  preloadGroundSurfaces(scene);
   scene.load.tilemapTiledJSON(MAP_KEY, worldMapUrl);
   scene.load.image(TILESET_KEY, worldTilesUrl);
   Object.entries(PROP_URLS).forEach(([key, url]) => scene.load.image(key, url));
@@ -131,9 +134,7 @@ export function createAshvaleWorld(scene: Phaser.Scene): AshvaleWorldRuntime {
   const map = scene.make.tilemap({ key: MAP_KEY });
   const tileset = map.addTilesetImage(TILESET_NAME, TILESET_KEY);
   if (!tileset) throw new Error('Ashvale world tileset could not be created.');
-  const ground = map.createLayer('Ground', tileset, 0, 0);
-  if (!ground) throw new Error('Ashvale world ground layer is missing.');
-  ground.setDepth(0);
+  const groundMap = createGroundSurface(scene);
 
   [TILESET_KEY, ...Object.keys(PROP_URLS)].forEach((key) => {
     scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -175,7 +176,7 @@ export function createAshvaleWorld(scene: Phaser.Scene): AshvaleWorldRuntime {
   leaves.setDepth(2);
 
   return {
-    map, collisionGroup, collisionRects, playerSpawn, slimeSpawns, spiderSpawns,
+    map, groundMap, collisionGroup, collisionRects, playerSpawn, slimeSpawns, spiderSpawns,
     width: map.widthInPixels, height: map.heightInPixels,
   };
 }

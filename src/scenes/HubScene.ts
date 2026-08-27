@@ -67,7 +67,7 @@ export class HubScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT).startFollow(this.player.visual, true, 1, 1).setRoundPixels(true);
     this.prompt = this.add.text(320, 320, '', { color: '#fff2c0', fontFamily: 'monospace', fontSize: '9px', backgroundColor: '#111913cc', padding: { x: 6, y: 4 } }).setOrigin(0.5).setScrollFactor(0).setDepth(30_000);
     this.registry.set('activeClass', selectedClass); this.registry.set('activeSkin', selectedSkin); this.registry.set('coins', progress.coins);
-    this.scene.launch(SceneKey.UI);
+    this.scene.launch(SceneKey.UI, { player: this.player });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
   }
 
