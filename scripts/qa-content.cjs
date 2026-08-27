@@ -18,14 +18,14 @@ function fresh() { storage = new Map(); const service = new GameProgressService(
 const sword = { id:'test-sword-1', kind:'sword', rarity:'rare', itemLevel:3, stats:{ damage:8,maxHealth:0,maxMana:10,cooldownReduction:.06,movementSpeed:0 } };
 const armor = { id:'test-armor-1', kind:'armor', rarity:'epic', itemLevel:3, stats:{ damage:0,maxHealth:40,maxMana:10,cooldownReduction:0,movementSpeed:.04 } };
 test('new save: empty inventory, equipment and 3+3 potions', () => {
-  const s=fresh().snapshot; assert.equal(s.version,3); assert.deepEqual(s.inventory,[]); assert.deepEqual(s.equipment,{});
+  const s=fresh().snapshot; assert.equal(s.version,4); assert.deepEqual(s.inventory,[]); assert.deepEqual(s.equipment,{});
   assert.equal(s.player.healthPotions,3); assert.equal(s.player.manaPotions,3); assert.equal(s.milestones.bossFirstKill,false);
 });
-for (const version of [1,2]) test('v'+version+' migration preserves progression, buildings and selection', () => {
+for (const version of [1,2,3]) test('v'+version+' migration preserves progression, buildings and selection', () => {
   storage = new Map([['ashvale-progress-v'+version,JSON.stringify({ version, coins:87, buildings:{forge:true,infirmary:true}, player:{level:4,xp:73,healthPotions:2,manaPotions:1,slimeKills:12,spiderKills:8}, selectedClass:'mage',currentSkin:'necromancer' })]]);
   const s=new GameProgressService().load(); assert.equal(s.coins,87); assert.deepEqual(s.buildings,{forge:true,infirmary:true});
   assert.deepEqual(s.player,{level:4,xp:73,healthPotions:2,manaPotions:1,slimeKills:12,spiderKills:8});
-  assert.deepEqual(s.selection,{classId:'mage',skinId:'necromancer'}); assert.deepEqual(s.inventory,[]); assert(storage.has('ashvale-progress-v3'));
+  assert.deepEqual(s.selection,{classId:'mage',skinId:'necromancer'}); assert.deepEqual(s.inventory,[]); assert(storage.has('ashvale-progress-v4'));
   assert(storage.has('ashvale-progress-v'+version));
 });
 test('equip restrictions, replacement and 100 equip/unequip cycles do not stack', () => {
@@ -136,4 +136,239 @@ test('visual ground retains authored dimensions and every void/floor cell',()=>{
     ground.forEach((gid,index)=>assert.equal(gid===0,visual[index]===0));
   }
 });
+
+const { AFFIXES, EMPTY_STATS, itemStats, equipmentComparison, isRelevant, CLASS_WEAPONS, rollEquipmentDrops } = qa('data/equipment.js');
+const { buyPrice, sellPrice, rollPotion } = qa('data/gameplayEconomy.js');
+const { CombatTargets, TargetSelector } = qa('combat/CombatTargets.js');
+const { DodgeState } = qa('data/dodge.js');
+const { summonPositions } = qa('systems/skills/summonPositions.js');
+const lootReport = [];
+function seeded(initial) { let seed=initial; return ()=>{ seed=(Math.imul(seed,1664525)+1013904223)>>>0; return seed/4294967296; }; }
+test('60000 smart loot rolls: class relevance, rarity, level weights, affixes, nonnegative stats and unique IDs', () => {
+  const ids=new Set();
+  for(const [index,classId] of ['warrior','archer','mage'].entries()) {
+    const rng=seeded(907+index), counts=Object.fromEntries(ITEM_RARITIES.map(r=>[r,0])), offsets={'-1':0,0:0,1:0};
+    let relevant=0, uncommonAffixed=0, uncommonCount=0, epicDouble=0, epicCount=0;
+    for(let i=0;i<20000;i++) {
+      const item=rollItem(10,'normal',rng,{classId});
+      assert(!ids.has(item.id)); ids.add(item.id); assert.deepEqual(validateItem(item),item);
+      relevant+=Number(isRelevant(item,classId)); counts[item.rarity]++; offsets[item.itemLevel-10]++;
+      const count=item.affixes.length;
+      assert.equal(new Set(item.affixes.map(a=>a.id)).size,count);
+      if(item.rarity==='common') assert.equal(count,0);
+      if(item.rarity==='uncommon') { assert(count<=1); uncommonCount++; uncommonAffixed+=count; }
+      if(item.rarity==='rare') assert.equal(count,1);
+      if(item.rarity==='epic') { assert(count===1||count===2); epicCount++; epicDouble+=Number(count===2); }
+      if(item.rarity==='legendary') assert.equal(count,2);
+      for(const affix of item.affixes) assert(affix.value>0&&affix.value<=AFFIXES[affix.id].cap);
+      for(const value of Object.values(itemStats(item))) assert(Number.isFinite(value)&&value>=0);
+      const rarityIndex=ITEM_RARITIES.indexOf(item.rarity), power=EQUIPMENT_CONFIG.rarityMultipliers[rarityIndex];
+      const expected=(item.kind==='armor'?8+item.itemLevel*3:2+item.itemLevel)*power;
+      const actual=item.stats[item.kind==='armor'?'maxHealth':'damage']; assert(actual>=Math.round(expected*.9)&&actual<=Math.round(expected*1.1));
+    }
+    assert(Math.abs(relevant/20000-.75)<.02);
+    ITEM_RARITIES.forEach((r,i)=>assert(Math.abs(counts[r]/20000-EQUIPMENT_CONFIG.rarityWeights.normal[i]/100)<.02));
+    for(const [offset,p] of [[-1,.2],[0,.4],[1,.4]]) assert(Math.abs(offsets[offset]/20000-p)<.02);
+    assert(Math.abs(uncommonAffixed/uncommonCount-.25)<.035); assert(Math.abs(epicDouble/epicCount-.5)<.07);
+    lootReport.push({classId,rolls:20000,relevantPercent:relevant/200,rarity:counts,offsets,uncommonAffixPercent:100*uncommonAffixed/uncommonCount,epicDoublePercent:100*epicDouble/epicCount});
+  }
+  console.log('LOOT_STATS '+JSON.stringify(lootReport));
+});
+test('2000 boss reward pairs: two items, at least one relevant, level floor and Rare+; elite level floor',()=>{
+  const rng=seeded(492);
+  for(let i=0;i<2000;i++){
+    const classId=['warrior','archer','mage'][i%3];
+    const pair=rollEquipmentDrops(12,'boss',rng,{classId}); assert.equal(pair.length,2);
+    assert(pair.some(item=>isRelevant(item,classId)));
+    pair.forEach(item=>{assert(item.itemLevel>=12&&item.itemLevel<=13);assert(ITEM_RARITIES.indexOf(item.rarity)>=2);});
+    assert(rollItem(12,'elite',rng,{classId}).itemLevel>=12);
+  }
+});
+test('potion drops: 5% / 20% / guaranteed boss, balanced health/mana; normal equipment stays 12%',()=>{
+  const rng=seeded(1109);
+  for(const [source,chance] of [['normal',.05],['elite',.2],['boss',1]]){
+    let count=0,health=0;
+    for(let i=0;i<20000;i++){const kind=rollPotion(source,rng);if(kind){count++;health+=Number(kind==='health');}}
+    assert(Math.abs(count/20000-chance)<.015); assert(Math.abs(health/count-.5)<.06);
+  }
+  let count=0;for(let i=0;i<20000;i++)count+=rollEquipmentDrops(5,'normal',rng,{classId:'mage'}).length;
+  assert(Math.abs(count/20000-.12)<.015);
+});
+test('weak-slot bias is mild, and useful drops still include non-upgrades',()=>{
+  const rng=seeded(87), equipment={weapon:{...sword,itemLevel:30,rarity:'legendary'}};
+  let armorCount=0, nonUpgrades=0;
+  for(let i=0;i<6000;i++){
+    const item=rollItem(10,'normal',rng,{classId:'warrior',equipment,forceRelevant:true});
+    armorCount+=Number(item.kind==='armor'); nonUpgrades+=Number(item.kind==='sword'&&item.itemLevel<30);
+  }
+  assert(armorCount/6000>.6&&armorCount/6000<.7); assert(nonUpgrades>1500);
+});
+test('2000 comparisons match actual equip bonuses including affixes, caps and class restrictions',()=>{
+  const rng=seeded(111);
+  for(let i=0;i<2000;i++){
+    const classId=['warrior','archer','mage'][i%3];
+    const equipment={weapon:rollItem(10,'boss',rng,{kind:CLASS_WEAPONS[classId]}),armor:rollItem(10,'boss',rng,{kind:'armor'})};
+    const item=rollItem(10,'normal',rng,{classId});
+    const before=equipmentBonuses(equipment,classId), after=equipmentBonuses({...equipment,[item.kind==='armor'?'armor':'weapon']:item},classId);
+    const delta=equipmentComparison(item,equipment,classId);
+    for(const key of Object.keys(EMPTY_STATS)) assert(Math.abs(after[key]-before[key]-delta[key])<.00001);
+  }
+  const capped={...sword,stats:{...EMPTY_STATS,cooldownReduction:.2},affixes:[{id:'focused',value:.06}]};
+  assert.equal(equipmentBonuses({weapon:capped},'warrior').cooldownReduction,.2);
+  assert.equal(equipmentComparison(capped,{weapon:capped},'warrior').cooldownReduction,0);
+});
+function forge() { const s=fresh(); s.addCoins(100000); assert(s.restoreBuilding('forge',12)); return s; }
+test('Forge is gated; three class-relevant offers stable across reopen/reload and sold-out state',()=>{
+  let s=fresh(); assert.deepEqual(s.ensureShop('mage'),[]); assert.equal(s.buyPotion('health','locked'),'locked');
+  s=forge(); const offers=s.ensureShop('mage'); assert.equal(offers.length,3); assert.equal(offers[0].kind,'staff'); assert.equal(offers[1].kind,'armor');
+  assert(offers.every(item=>isRelevant(item,'mage'))); assert.deepEqual(s.ensureShop('mage'),offers);
+  s=new GameProgressService(); s.load(); assert.deepEqual(s.ensureShop('mage'),offers);
+  for(const item of offers){
+    const before=s.snapshot.coins; assert.equal(s.buyEquipment(item.id,'mage'),'ok'); assert.equal(before-s.snapshot.coins,buyPrice(item));
+    const snapshot=s.snapshot; assert.equal(s.buyEquipment(item.id,'mage'),'missing'); assert.deepEqual(s.snapshot,snapshot);
+  }
+  assert.deepEqual(s.ensureShop('mage'),[]); const reload=new GameProgressService(); reload.load(); assert.deepEqual(reload.ensureShop('mage'),[]);
+  assert.deepEqual(reload.snapshot.inventory,offers);
+  const originalIds=new Set(offers.map(item=>item.id)); reload.refreshShop(); assert(reload.ensureShop('mage').every(item=>!originalIds.has(item.id)));
+  assert.deepEqual(reload.snapshot.inventory,offers);
+});
+test('insufficient funds and full bag are atomic; potion purchase and receipts survive reload',()=>{
+  const s=forge(); const offers=s.ensureShop('warrior');
+  s.spendCoins(s.snapshot.coins); let before=s.snapshot;
+  assert.equal(s.buyEquipment(offers[0].id,'warrior'),'coins'); assert.equal(s.buyPotion('mana','no-money'),'coins'); assert.deepEqual(s.snapshot,before);
+  s.addCoins(10000);
+  for(let i=0;i<24;i++) assert(s.pickup({...sword,id:'full-'+i}));
+  before=s.snapshot; assert.equal(s.buyEquipment(offers[0].id,'warrior'),'full'); assert.deepEqual(s.snapshot,before);
+  assert.equal(s.buyPotion('health','health-once'),'ok'); assert.equal(s.snapshot.coins,before.coins-12); assert.equal(s.snapshot.player.healthPotions,before.player.healthPotions+1);
+  before=s.snapshot; assert.equal(s.buyPotion('health','health-once'),'duplicate'); assert.deepEqual(s.snapshot,before);
+  const reload=new GameProgressService(); reload.load(); assert.equal(reload.buyPotion('health','health-once'),'duplicate');
+  assert.equal(reload.buyPotion('mana','mana-once'),'ok'); assert.equal(reload.snapshot.coins,before.coins-14);
+  assert(reload.addPotion('health')); assert.equal(reload.snapshot.player.healthPotions,before.player.healthPotions+1);
+});
+test('sell protects equipped items and confirms Rare+; duplicate sell/equip cannot resurrect sold items',()=>{
+  const s=forge(); s.pickup(sword); s.equip(sword.id,'warrior');
+  let before=s.snapshot; assert.equal(s.sellItem(sword.id,true),'missing'); assert.deepEqual(s.snapshot,before);
+  assert(s.unequip('weapon')); before=s.snapshot; assert.equal(s.sellItem(sword.id),'confirm'); assert.deepEqual(s.snapshot,before);
+  assert.equal(s.sellItem(sword.id,true),'ok'); assert.equal(s.snapshot.coins,before.coins+sellPrice(sword)); assert(sellPrice(sword)<buyPrice(sword));
+  before=s.snapshot; assert.equal(s.sellItem(sword.id,true),'missing'); assert.equal(s.equip(sword.id,'warrior'),'missing'); assert.deepEqual(s.snapshot,before);
+});
+test('level-up refreshes stock while selection, rolled affixes and inventory remain stable',()=>{
+  const s=forge(), old=s.ensureShop('mage'); const item=rollItem(5,'boss',seeded(234),{classId:'mage'});
+  s.pickup(item); s.select('mage','little-mage'); const before=s.snapshot.shop.generation;
+  s.recordEnemyDefeat('spider',100);
+  assert(s.snapshot.shop.generation>before); assert.deepEqual(s.snapshot.inventory,[item]);
+  assert(s.ensureShop('mage').every(item=>!old.some(other=>other.id===item.id)));
+  assert.deepEqual(new GameProgressService().load(),s.snapshot);
+});
+test('legacy v3 items are migrated without reroll; malformed and duplicated affixes are sanitized',()=>{
+  fresh(); storage.set('ashvale-progress-v3',JSON.stringify({version:3,coins:75,inventory:[sword],equipment:{armor},selection:{classId:'mage',skinId:'little-mage'},milestones:{bossFirstKill:true}}));
+  const s=new GameProgressService().load(); assert.equal(s.version,4); assert.equal(s.coins,75);
+  assert.equal(s.inventory[0].stats.damage,8); assert.deepEqual(s.inventory[0].affixes,[]); assert.equal(s.equipment.armor.stats.maxHealth,40);
+  assert.equal(s.milestones.bossFirstKill,true); assert.equal(s.selection.skinId,'little-mage');
+  const item=validateItem({...sword,affixes:[{id:'focused',value:99},{id:'focused',value:.01},{id:'unknown',value:1},{id:'sharp',value:-2}]});
+  assert.deepEqual(item.affixes,[{id:'focused',value:.06}]);
+});
+test('target lock, player priority, dead-target eviction and boss weighting',()=>{
+  const targets=new CombatTargets();
+  const target=(id,type,x)=>({targetId:id,targetType:type,x,y:0,alive:true,priority:type==='player'?1.2:1,physicsRoot:{},takeDamage:()=>true});
+  const player=target('player','player',100), echo=target('echo','summon',90); targets.add(player); targets.add(echo);
+  const selector=new TargetSelector(targets); assert.equal(selector.choose(0,0,0),player);
+  echo.x=10; assert.equal(selector.choose(399,0,0),player); assert.equal(selector.choose(400,0,0),echo);
+  targets.remove(echo); assert.equal(selector.current,undefined); assert.equal(selector.choose(401,0,0),player);
+  echo.x=50; targets.add(echo); const boss=new TargetSelector(targets,3); assert.equal(boss.choose(0,0,0),player);
+  echo.x=5; assert.equal(boss.choose(400,0,0),echo); echo.alive=false; assert.equal(boss.choose(401,0,0),player);
+  targets.remove(player); assert.equal(boss.choose(402,0,0),undefined);
+});
+test('Dodge has finite iframe/duration, cooldown survives cancellation, repeated starts cannot extend it',()=>{
+  const dodge=new DodgeState(); assert(dodge.start(100)); assert(!dodge.start(110));
+  assert(dodge.invulnerable(279)); assert(!dodge.invulnerable(280)); assert(dodge.active(299)); assert(!dodge.active(300));
+  assert(!dodge.start(1499)); assert(dodge.start(1500)); dodge.cancel();
+  assert(!dodge.active(1501)); assert(!dodge.invulnerable(1501)); assert(!dodge.start(1501)); assert(dodge.start(2900));
+});
+test('600 safe summon layouts respect full footprints, gates, spread and bounds; blocked casts return no partial summons',()=>{
+  const rng=seeded(198);
+  for(let i=0;i<600;i++){
+    const origin={x:30+rng()*440,y:30+rng()*440};
+    const blockers=[{x:240,y:0,width:20,height:500}];
+    if(origin.x>225&&origin.x<276){i--;continue;}
+    const positions=summonPositions(origin,bounds,blockers);
+    assert(positions.length===0||positions.length===3);
+    positions.forEach((p,index)=>{
+      assert(p.x-9>=0&&p.x+9<=500&&p.y-13>=0&&p.y<=500);
+      assert(p.x+9<240||p.x-9>260);
+      assert((p.x<240)===(origin.x<240));
+      positions.slice(index+1).forEach(other=>assert(Math.hypot(p.x-other.x,p.y-other.y)>=32));
+    });
+  }
+  assert.equal(summonPositions({x:100,y:100},bounds,[{x:64,y:64,width:20,height:72},{x:116,y:64,width:20,height:72},{x:84,y:64,width:32,height:20},{x:84,y:116,width:32,height:20}]).length,0);
+  assert.equal(summonPositions({x:250,y:250},bounds,[]).length,3);
+});
+
+
+test('summon lifecycle and Volatile damage with stubbed rendering/physics (not browser QA)',()=>{
+  const Module=require('node:module'), originalLoad=Module._load;
+  const shots=[], projectiles=[], colliders=[], objects=new Set();
+  class Art {
+    constructor(x=0,y=0,key='idle',frame=0){this.x=x;this.y=y;this.active=true;this.texture={key};this.frame={name:frame};this.data={};this.scaleX=this.scaleY=1;objects.add(this);}
+    setOrigin(x,y=x){this.originX=x;this.originY=y;return this;} setScale(x,y=x){this.scaleX=x;this.scaleY=y;return this;}
+    setDepth(value){this.depth=value;return this;} setFlipX(value){this.flipX=value;return this;} setTint(){return this;} setAlpha(){return this;}
+    setPosition(x,y){this.x=x;this.y=y;return this;} setTexture(key,frame=0){this.texture={key};this.frame={name:frame};return this;}
+    setData(key,value){this.data[key]=value;return this;} getData(key){return this.data[key];} play(){return this;} stop(){return this;}
+    destroy(){this.active=false;objects.delete(this);}
+  }
+  class Projectiles {
+    constructor(){this.active=true;projectiles.push(this);}
+    spawn(...args){shots.push({owner:this,hit:args[7]});} update(){} destroy(){this.active=false;}
+  }
+  class Vfx { effect(){} update(){} impact(){} destroy(){} afterimage(){} }
+  const skin={displayScale:2,visualCenterX:7,baseline:16,attackImpactFrame:2,animations:{idle:{frameWidth:16,frameHeight:16},attack:{rootX:11,baseline:32,frameWidth:32,frameHeight:32,frames:6,frameRate:10}}};
+  Module._load=function(request,parent,isMain){
+    if(request.endsWith('/characterSkins')) return {getCharacterSkin:()=>skin};
+    if(request.endsWith('/characterAssets')) return {characterTextureKey:(_skin,state)=>state,characterAnimationKey:(_skin,state)=>state,idleFrameForSkin:()=>0};
+    if(request.endsWith('/ProjectileSystem')) return {ProjectileSystem:Projectiles};
+    if(request.endsWith('/PixelSkillVfx')) return {PixelSkillVfx:Vfx,line:()=>{},pixel:()=>{}};
+    return originalLoad.call(this,request,parent,isMain);
+  };
+  try {
+    const {ArcaneEchoSystem}=qa('systems/skills/ArcaneEchoSystem.js');
+    const {CombatFeedback}=qa('systems/skills/CombatFeedback.js');
+    const scene={time:{now:0},add:{zone:(...args)=>new Art(...args),sprite:(...args)=>new Art(...args),image:(...args)=>new Art(...args)},physics:{
+      world:{bounds},add:{
+        existing(root){root.body={setAllowGravity(){return this;},setImmovable(){return this;},setSize(){return this;},updateFromGameObject(){return this;}};},
+        collider(){const c={active:true,destroy(){this.active=false;}};colliders.push(c);return c;},
+      },overlap:()=>true
+    }};
+    let dealt=0;
+    const player={x:250,y:250,alive:true,activeSkin:'little-mage',activeClass:'mage',finalDamage:50,currentHealth:5,maxHealth:100,currentMana:2,maxMana:100,
+      restoreHealth(v){this.currentHealth=Math.min(this.maxHealth,this.currentHealth+v);},restoreMana(v){this.currentMana=Math.min(this.maxMana,this.currentMana+v);}
+    };
+    const enemy={visual:{x:280,y:270,active:true},currentHealth:100,takeDamage(damage){dealt+=damage;return true;}};
+    const group={getChildren:()=>[]};
+    const echoes=new ArcaneEchoSystem(scene,{player,obstacles:group,slimes:{group,forEach:fn=>fn(enemy),getSlime:()=>enemy},spiders:{group,hurtboxGroup:group,forEach:()=>{},get:()=>undefined}});
+    assert(echoes.cast()); assert.equal(combatTargetsForScene().all().length,0);
+    scene.time.now=220; echoes.update(220); assert.equal(combatTargetsForScene().all().length,3);
+    scene.time.now=420; echoes.update(420); assert.equal(shots.length,1); shots[0].hit({}); assert.equal(dealt,10);
+    const first=combatTargetsForScene().all()[0]; assert(first.takeDamage(0,0,0)); assert(!first.takeDamage(99,0,0));
+    assert.equal(combatTargetsForScene().get(first.targetId),undefined); assert(!projectiles[0].active);
+    scene.time.now=8000; echoes.update(8000); assert.equal(combatTargetsForScene().all().length,0); assert.equal(objects.size,0);
+    assert(echoes.cast()); scene.time.now=8220; echoes.update(8220); const previous=combatTargetsForScene().all();
+    assert(echoes.cast()); assert(previous.every(e=>e.disposed)); scene.time.now=8440; echoes.update(8440); assert.equal(combatTargetsForScene().all().length,3);
+    player.alive=false; echoes.update(8441); assert.equal(combatTargetsForScene().all().length,0); assert.equal(objects.size,0);
+    echoes.destroy(); echoes.destroy(); assert(colliders.every(c=>!c.active)); assert(projectiles.every(p=>!p.active));
+    player.alive=true;
+    const feedback=new CombatFeedback(scene,player); feedback.levelUp(1); assert.equal(player.currentHealth,35); assert.equal(player.currentMana,32);
+    feedback.levelUp(5); assert.equal(player.currentHealth,100); assert.equal(player.currentMana,100);
+    const hits={player:0,echo:0,far:0}, dodge=new DodgeState();
+    const targets=combatTargetsForScene();
+    for(const [id,x] of [['player',250],['echo',265],['far',400]]) targets.add({targetId:id,targetType:id==='player'?'player':'summon',priority:1,x,y:250,alive:true,physicsRoot:{},
+      takeDamage(){if(id==='player'&&dodge.invulnerable(scene.time.now))return false;hits[id]++;return true;}
+    });
+    feedback.volatile(250,250); scene.time.now=9440; assert(dodge.start(scene.time.now)); feedback.update(9440); assert.deepEqual(hits,{player:0,echo:1,far:0});
+    feedback.update(9441); assert.deepEqual(hits,{player:0,echo:1,far:0});
+    feedback.volatile(250,250); scene.time.now=10441; feedback.update(10441); assert.deepEqual(hits,{player:1,echo:2,far:0});
+    feedback.volatile(250,250); feedback.clear(); scene.time.now=12000; feedback.update(12000); assert.deepEqual(hits,{player:1,echo:2,far:0}); assert.equal(objects.size,0);
+    function combatTargetsForScene(){return qa('combat/CombatTargets.js').combatTargets(scene);}
+  } finally { Module._load=originalLoad; }
+});
+
 console.log(checks+' data/config/map/geometry checks passed. This is not browser runtime or visual QA.');

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { combatTargets, TargetSelector, type CombatTarget } from '../../combat/CombatTargets';
 import { EnemyModifiers } from './EnemyModifiers';
 import type { EliteAffix } from '../../data/elites';
 
@@ -18,6 +19,8 @@ export class MossSlime {
   public readonly spawnX: number;
   public readonly spawnY: number;
 
+  private readonly targeting: TargetSelector;
+  private attackTargetId?: string;
   private readonly body: Phaser.Physics.Arcade.Body;
   private state: MossSlimeState = 'idle';
   private health: number;
@@ -32,11 +35,12 @@ export class MossSlime {
     private readonly scene: Phaser.Scene,
     x: number,
     y: number,
-    private readonly player: PlayerCharacter,
+    _player: PlayerCharacter,
     private readonly onDeath: DeathHandler,
     private readonly onEngage: EngageHandler = () => undefined,
     public readonly elite?: EliteAffix,
   ) {
+    this.targeting = new TargetSelector(combatTargets(scene));
     this.spawnX = x;
     this.spawnY = y;
     this.visual = scene.physics.add.sprite(x, y, MossSlimeAnimation.Idle, 0)
@@ -68,7 +72,8 @@ export class MossSlime {
       this.state = 'chase';
     }
 
-    const playerDistance = Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.player.x, this.player.y);
+    const target = this.targeting.choose(time, this.visual.x, this.visual.y);
+    const playerDistance = target ? Phaser.Math.Distance.Between(this.visual.x, this.visual.y, target.x, target.y) : Infinity;
     const homeDistance = Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.spawnX, this.spawnY);
     const mayContinueChase = this.state === 'chase' && playerDistance <= MOSS_SLIME_CONFIG.disengageRange;
 
@@ -78,7 +83,7 @@ export class MossSlime {
     }
 
     if (playerDistance <= MOSS_SLIME_CONFIG.detectionRange || mayContinueChase) {
-      this.chasePlayer(playerDistance);
+      if (target) this.chasePlayer(playerDistance, target);
       return;
     }
 
@@ -143,14 +148,14 @@ export class MossSlime {
     this.visual.destroy();
   }
 
-  private chasePlayer(distance: number): void {
+  private chasePlayer(distance: number, target: CombatTarget): void {
     this.state = 'chase';
     if (distance <= MOSS_SLIME_CONFIG.attackRange * 0.8) {
       this.body.setVelocity(0, 0);
       this.play(MossSlimeAnimation.Idle);
       return;
     }
-    this.moveToward(this.player.x, this.player.y, MOSS_SLIME_CONFIG.moveSpeed);
+    this.moveToward(target.x, target.y, MOSS_SLIME_CONFIG.moveSpeed);
     this.play(MossSlimeAnimation.Move);
   }
 
@@ -192,7 +197,8 @@ export class MossSlime {
     this.state = 'attack';
     this.impactTriggered = false;
     this.body.setVelocity(0, 0);
-    this.visual.setFlipX(this.player.x < this.visual.x);
+    this.attackTargetId = this.targeting.current?.targetId;
+    this.visual.setFlipX((this.targeting.current?.x ?? this.visual.x) < this.visual.x);
     this.play(MossSlimeAnimation.Attack, true);
   }
 
@@ -234,9 +240,11 @@ export class MossSlime {
     if (this.modifiers.stunned || this.state !== 'attack' || this.impactTriggered || animation.key !== MossSlimeAnimation.Attack) return;
     if (Number(frame.textureFrame) !== ATTACK_IMPACT_FRAME) return;
     this.impactTriggered = true;
-    const distance = Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.player.x, this.player.y);
+    const target = combatTargets(this.scene).get(this.attackTargetId);
+    if (!target) return;
+    const distance = Phaser.Math.Distance.Between(this.visual.x, this.visual.y, target.x, target.y);
     if (distance <= MOSS_SLIME_CONFIG.attackRange + 8) {
-      if (this.player.takeDamage(Math.round(MOSS_SLIME_CONFIG.attackDamage * this.modifiers.damageMultiplier), this.visual.x, this.visual.y)) this.onEngage(this);
+      if (target.takeDamage(Math.round(MOSS_SLIME_CONFIG.attackDamage * this.modifiers.damageMultiplier), this.visual.x, this.visual.y)) this.onEngage(this);
     }
   }
 

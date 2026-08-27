@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { appendItemStats, appendComparison, statValue } from './ItemDetails';
 import { EMPTY_STATS, EQUIPMENT_CONFIG, ITEM_DEFINITIONS, RARITY_COLORS, equipmentBonuses, type EquipmentSlot, type ItemInstance, type ItemStats } from '../data/equipment';
 import { PLAYER_CLASS_CONFIGS } from '../data/playerClasses';
 import { ADVANCED_SKILLS } from '../data/advancedSkills';
@@ -15,9 +16,6 @@ import { LivePlayerPreview } from './LivePlayerPreview';
 const keys = Object.keys(EMPTY_STATS) as (keyof ItemStats)[];
 function node<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ''): HTMLElementTagNameMap[K] {
   const element = document.createElement(tag); element.className = className; element.textContent = text; return element;
-}
-function statValue(key: keyof ItemStats, value: number): string {
-  return key === 'cooldownReduction' || key === 'movementSpeed' ? Math.round(value * 100) + '%' : String(value);
 }
 export class EquipmentPanels {
   public readonly inventory = node('section', 'hud-info-panel equipment-panel');
@@ -178,16 +176,9 @@ export class EquipmentPanels {
     const isEquipped = equipped?.id === item.id;
     this.tooltip.append(title, node('p', '', t(`rarity.${item.rarity}`)), node('p', '', t('equipment.level', { level: item.itemLevel })), node('p', '', t(`equipment.${definition.slot}`)));
     if (definition.classId) this.tooltip.append(node('p', '', t('equipment.class') + ': ' + t(`class.${definition.classId}`)));
-    for (const key of keys) if (item.stats[key]) this.tooltip.append(node('div', 'item-stat', t(`stat.${key}`) + ' +' + statValue(key, item.stats[key])));
-    if (!isEquipped) {
-      this.tooltip.append(node('h4', '', t('equipment.compare')));
-      let changed = false;
-      for (const key of keys) {
-        const difference = item.stats[key] - (equipped?.stats[key] ?? 0);
-        if (difference) { changed = true; this.tooltip.append(node('div', difference > 0 ? 'stat-better' : 'stat-worse', t(`stat.${key}`) + ' ' + (difference > 0 ? '+' : '') + statValue(key, difference))); }
-      }
-      if (!changed) this.tooltip.append(node('p', '', t('equipment.sameStats')));
-    } else this.tooltip.append(node('h4', '', t('equipment.worn')));
+    appendItemStats(this.tooltip, item);
+    if (!isEquipped) appendComparison(this.tooltip, item, gameProgressService.snapshot.equipment, classId);
+    else this.tooltip.append(node('h4', '', t('equipment.worn')));
     const action = node('button', 'equipment-action', t(isEquipped ? 'equipment.unequip' : 'equipment.equip')); action.type = 'button';
     if (!isEquipped && this.inactive(item, classId)) { action.disabled = true; this.tooltip.append(node('small', 'stat-worse', t('equipment.wrongClass'))); }
     action.onclick = () => {

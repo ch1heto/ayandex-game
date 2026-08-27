@@ -28,6 +28,6 @@ for w,h in [(1280,720),(1366,768),(1920,1080)]:
     boxes=[[round(ox+670*scale,2),round(oy+(400+index*91)*scale,2),round(340*scale,2),round(77*scale,2)] for index in range(4)]
     assert all(x>=0 and y>=0 and x+bw<=w and y+bh<=h for x,y,bw,bh in boxes)
     geometry.append({'viewport':[w,h],'scale':scale,'crop':[abs(ox),abs(oy)],'buttonBounds':boxes})
-report={'icons':findings,'menuOriginalHashMatches':True,'menuGeometry':geometry,'runtimeVisualQA':'BLOCKED: browser kernel sandbox setup failure'}
+report={'icons':findings,'menuOriginalHashMatches':True,'menuGeometry':geometry,'runtimeVisualQA':'NOT RUN: offline asset checks only'}
 (OUT/'asset-report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
 print('10 icons: 32x32, binary alpha. Menu SHA-256 identical. Three layout geometries pass; browser rendering NOT verified.')

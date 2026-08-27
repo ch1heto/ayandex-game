@@ -205,5 +205,5 @@
       ]
     }
   ],
-  "runtimeVisualQA": "BLOCKED: browser kernel sandbox setup failure"
+  "runtimeVisualQA": "NOT RUN: offline asset checks only"
 }

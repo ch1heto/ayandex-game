@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { ArcaneEchoSystem } from '../systems/skills/ArcaneEchoSystem';
+import { CombatFeedback } from '../systems/skills/CombatFeedback';
 import { equipmentBonuses } from '../data/equipment';
 import { ELITE_CONFIG, type EliteAffix } from '../data/elites';
 import { DUNGEON_CONFIG } from '../data/dungeon';
@@ -49,6 +51,8 @@ export class GameScene extends Phaser.Scene {
   private slimes!: MossSlimeSpawner;
   private spiders!: EmberSpiderSpawner;
   private restoration?: RestorationSystem;
+  private echoes!: ArcaneEchoSystem;
+  private feedback!: CombatFeedback;
   private advanced!: AdvancedSkillSystem;
   private equipmentLoot!: EquipmentLootSystem;
   private dungeon?: DungeonRun;
@@ -137,7 +141,9 @@ export class GameScene extends Phaser.Scene {
       spiders: this.spiders,
       obstacles: this.worldRuntime.collisionGroup,
     });
-    this.advanced = new AdvancedSkillSystem(this, { player: this.player, projectiles: this.projectiles, slimes: this.slimes, spiders: this.spiders, obstacles: this.worldRuntime.collisionGroup });
+    this.echoes = new ArcaneEchoSystem(this, { player: this.player, slimes: this.slimes, spiders: this.spiders, obstacles: this.worldRuntime.collisionGroup });
+    this.feedback = new CombatFeedback(this, this.player);
+    this.advanced = new AdvancedSkillSystem(this, { echoes: this.echoes, player: this.player, projectiles: this.projectiles, slimes: this.slimes, spiders: this.spiders, obstacles: this.worldRuntime.collisionGroup });
     this.syncEquipment();
     this.dungeon = this.isDungeon ? new DungeonRun(this, this.worldRuntime as DungeonWorld, this.player, this.slimes, this.spiders,
       enemy => this.focusTarget('spider', enemy), this.handleBossReward, (x, y) => { this.coinDrops.spawn(x, y, Phaser.Math.Between(2, 4)); this.handleEnemyDefeated('spider', x, y); }) : undefined;
@@ -195,7 +201,7 @@ export class GameScene extends Phaser.Scene {
       !this.restoration?.isModalOpen && this.registry.get('equipmentPanelOpen') !== true && this.leftKey.isDown,
       !this.restoration?.isModalOpen && this.registry.get('equipmentPanelOpen') !== true && this.rightKey.isDown,
     );
-    this.projectiles.update();
+    this.projectiles.update(); this.echoes.update(time); this.feedback.update(time);
     this.player.updateResources(time, delta);
     this.slimes.update(time);
     this.spiders.update(time);
@@ -253,7 +259,7 @@ export class GameScene extends Phaser.Scene {
     const fallback = GAMEPLAY_SKINS_BY_CLASS[classId][0]?.id;
     const skinId = typeof selected === 'string' && isGameplaySkinForClass(selected, classId) ? selected : fallback;
     if (!skinId || !this.player.switchClass(classId, skinId)) return;
-    this.skills.cancelPending(); this.advanced.cancel();
+    this.skills.cancelPending(); this.advanced.cancel(); this.echoes.clear();
     this.projectiles.destroy();
     this.player.restoreFullHealth();
     this.registry.set('selectedClass', classId);
@@ -270,6 +276,14 @@ export class GameScene extends Phaser.Scene {
       if (this.dungeon?.canExit) { this.scene.start(SceneKey.Game); return; }
       if (this.entrance?.near(this.player.x, this.player.y)) { this.scene.start(SceneKey.Dungeon); return; }
       if (this.restoration?.interact()) return;
+    }
+    if (event.code === 'Space' && !this.restoration?.isModalOpen && this.registry.get('equipmentPanelOpen') !== true) {
+      event.preventDefault();
+      const pointer = this.input.activePointer, aim = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      if (this.player.dodge(Number(this.rightKey.isDown) - Number(this.leftKey.isDown), Number(this.downKey.isDown) - Number(this.upKey.isDown), aim.x - this.player.x, aim.y - this.player.y)) {
+        this.skills.cancelPending(); this.advanced.cancelPending(); this.feedback.dodge();
+      }
+      return;
     }
     if (['Digit1', 'Digit2', 'Digit3'].includes(event.code) && !this.restoration?.isModalOpen && this.registry.get('equipmentPanelOpen') !== true) {
       const pointer = this.input.activePointer;
@@ -294,7 +308,7 @@ export class GameScene extends Phaser.Scene {
     const current = skins.findIndex((skin) => skin.id === this.player.activeSkin);
     const next = skins[Phaser.Math.Wrap(current + delta, 0, skins.length)];
     if (!this.player.switchSkin(next.id)) return;
-    this.skills.cancelPending(); this.advanced.cancel();
+    this.skills.cancelPending(); this.advanced.cancel(); this.echoes.clear();
     this.projectiles.destroy();
     this.registry.set(`selectedSkin:${this.player.activeClass}`, next.id);
     this.registry.set('selectedSkin', next.id);
@@ -388,7 +402,7 @@ export class GameScene extends Phaser.Scene {
     this.registry.set('playerHealth', health);
     this.registry.set('playerMaxHealth', maxHealth);
     if (health > 0 || this.respawnPending) return;
-    this.skills?.cancelPending(); this.advanced?.cancel(); this.projectiles?.destroy();
+    this.skills?.cancelPending(); this.advanced?.cancel(); this.projectiles?.destroy(); this.echoes?.clear(); this.feedback?.clear(); this.player?.cancelDodge();
     this.respawnPending = true;
     this.time.delayedCall(720, () => {
       if (this.isDungeon) { this.scene.start(SceneKey.Game); return; }
@@ -406,11 +420,12 @@ export class GameScene extends Phaser.Scene {
 
   private handleEnemyDefeated = (kind: EnemyKind, x: number, y: number, elite?: EliteAffix): void => {
     this.equipmentLoot.roll(x, y, elite ? 'elite' : 'normal');
+    if (elite === 'volatile') this.feedback.volatile(x, y);
     if (elite) { gameProgressService.milestone('eliteKilled'); notify(this, t('notify.elite'), 'elite'); }
     const result = gameProgressService.recordEnemyDefeat(kind, elite ? ELITE_CONFIG.xp : 1);
     if (!this.xpNotification) this.nextXpNotification = Math.max(this.time.now + 400, this.lastXpNotification + 1000);
     this.xpNotification += result.xpGained;
-    if (result.levelsGained > 0) this.pushNotification(t('notify.level', { level: result.progress.player.level }));
+    if (result.levelsGained > 0) { this.feedback.levelUp(result.levelsGained); this.pushNotification(t('notify.level', { level: result.progress.player.level })); }
     if (result.completedObjective) this.pushNotification(t(result.completedObjective === 'slime' ? 'objective.slimeComplete' : 'objective.spiderComplete'));
     this.refreshProgressRegistry();
     if (this.target?.kind === kind && this.target.enemy.currentHealth <= 0) this.clearTarget();
@@ -470,6 +485,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private refreshRuntimeRegistry(time: number): void {
+    this.registry.set('dodgeCooldownMs', this.player.dodgeCooldown);
     this.registry.set('gameTime', time);
     this.registry.set('playerX', this.player.x);
     this.registry.set('playerY', this.player.y);
@@ -507,18 +523,19 @@ export class GameScene extends Phaser.Scene {
     this.equipmentRevision = gameProgressService.version;
     const saved = gameProgressService.snapshot;
     this.player.applyEquipment(equipmentBonuses(saved.equipment, this.player.activeClass));
+    this.setCoins(saved.coins);
     this.registry.set('playerFinalDamage', this.player.finalDamage); this.refreshProgressRegistry();
   }
 
   private handleBossReward = (x: number, y: number): void => {
     const result = gameProgressService.recordEnemyDefeat('spider', DUNGEON_CONFIG.boss.xpMultiplier);
-    gameProgressService.milestone('bossFirstKill');
+    gameProgressService.milestone('bossFirstKill'); gameProgressService.refreshShop();
     this.setCoins(gameProgressService.addCoins(DUNGEON_CONFIG.boss.coins).coins);
     this.equipmentLoot.roll(x, y, 'boss');
     notify(this, t('boss.defeated'), 'boss', '#d4b476');
     notify(this, t('notify.xp', { xp: result.xpGained }), 'boss-xp');
     notify(this, t('notify.coins', { coins: DUNGEON_CONFIG.boss.coins }), 'boss-coins');
-    if (result.levelsGained) notify(this, t('notify.level', { level: result.progress.player.level }), 'level');
+    if (result.levelsGained) { this.feedback.levelUp(result.levelsGained); notify(this, t('notify.level', { level: result.progress.player.level }), 'level'); }
     this.refreshProgressRegistry();
   };
 
@@ -561,6 +578,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off(Phaser.Scenes.Events.PRE_RENDER, this.updateCameraFollow, this);
     this.debugOverlay?.destroy();
     this.debugOverlay = undefined;
+    this.echoes?.destroy(); this.feedback?.destroy();
     this.projectiles?.destroy();
     this.slimes?.destroy();
     this.spiders?.destroy();

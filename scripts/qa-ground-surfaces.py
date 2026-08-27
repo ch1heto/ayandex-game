@@ -46,8 +46,8 @@ assert np.array_equal(np.array(dungeon.getchannel("A"))>0,np.array(stitch("ashen
 after_ratio=seam_ratio(after)
 assert max(after_ratio.values())<1.5,after_ratio
 unchanged={}
-for name in ["maps/ashvale-world.json","maps/ashen-catacombs.json","src/entities/player/PlayerCharacter.ts",
-             "src/systems/save/GameProgressService.ts","src/scenes/MainMenuScene.ts","assets/ui/menu/ashvale-main-menu-original.png"]:
+for name in ["maps/ashvale-world.json","maps/ashen-catacombs.json",
+             "src/scenes/MainMenuScene.ts","assets/ui/menu/ashvale-main-menu-original.png"]:
     old=subprocess.check_output(["git","show","HEAD:"+name],cwd=ROOT)
     current=(ROOT/name).read_bytes()
     # Git normalizes text newlines. PNG comparison remains byte exact.
@@ -62,7 +62,7 @@ for row,(label,x,y) in enumerate([("grass / dirt",1000,880),("dirt / stone / gra
         pen.text((col*384+8,row*248+6),("BEFORE " if col==0 else "AFTER ")+label,fill="#eee0b5")
 contact.save(OUT/"ground-comparison.png")
 icons=[]
-for name in ["arcane-blink","arcane-bind","piercing-shot"]:
+for name in ["arcane-blink","arcane-bind","piercing-shot","arcane-echoes"]:
     root=ET.parse(ROOT/"assets/ui/skills"/(name+".svg")).getroot()
     assert root.attrib["viewBox"]=="0 0 32 32"
     assert root.attrib["shape-rendering"]=="crispEdges"
@@ -72,6 +72,6 @@ for name in ["arcane-blink","arcane-bind","piercing-shot"]:
 report={"atlasSize":atlas.size,"binaryAlpha":True,"voidsPreserved":True,
         "boundaryContrastBefore":seam_ratio(before),"boundaryContrastAfter":after_ratio,
         "unchangedAgainstHEAD":unchanged,"svgIcons":icons,
-        "runtimeVisualQA":"BLOCKED: browser sandbox setup failed; console errors not measured"}
+        "runtimeVisualQA":"NOT RUN: offline asset checks only; console errors not measured"}
 (OUT/"surface-qa.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
 print(json.dumps(report,indent=2))

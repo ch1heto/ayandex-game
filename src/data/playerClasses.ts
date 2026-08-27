@@ -19,9 +19,9 @@ export const PLAYER_CLASS_CONFIGS: Record<PlayerClassId, PlayerClassConfig> = {
     label: 'WARRIOR',
     accentColor: '#7ca3d2',
     moveSpeed: 142,
-    maxHealth: 120,
+    maxHealth: 140,
     attackKind: 'melee',
-    attackDamage: 18,
+    attackDamage: 20,
     attackRange: 42,
   },
   archer: {

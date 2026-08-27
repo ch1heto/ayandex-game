@@ -30,6 +30,7 @@ export class UIScene extends Phaser.Scene {
   private classText!: HTMLDivElement;
   private interactionNotice!: HTMLDivElement;
   private interactionText!: HTMLSpanElement;
+  private dodgeIndicator!: HTMLDivElement;
   private skillSlot!: HotbarSlot;
   private healthPotion!: HotbarSlot;
   private manaPotion!: HotbarSlot;
@@ -100,6 +101,7 @@ export class UIScene extends Phaser.Scene {
     this.healthPotion = this.createHotbarSlot('Q', 'health-potion');
     this.manaPotion = this.createHotbarSlot('E', 'mana-potion');
     hotbar.append(this.healthPotion.root, this.manaPotion.root);
+    this.dodgeIndicator = element('div', 'hud-dodge'); hotbar.append(this.dodgeIndicator);
 
     const utility = element('div', 'hud-utility');
     const inventoryButton = this.utilityButton('I', t('hud.inventory'), () => this.togglePanel('inventory'));
@@ -145,6 +147,9 @@ export class UIScene extends Phaser.Scene {
   }
 
   private refreshHotbar(classId: PlayerClassId): void {
+    const dodge = numberValue(this.registry.get('dodgeCooldownMs'), 0);
+    this.dodgeIndicator.textContent = 'SPACE · ' + (dodge > 0 ? (dodge / 1000).toFixed(1) : t('dodge.ready'));
+    this.dodgeIndicator.title = t('dodge.name'); this.dodgeIndicator.classList.toggle('cooldown', dodge > 0);
     const cooldown = Math.max(0, numberValue(this.registry.get('skill1CooldownMs'), 0));
     const total = Math.max(1, numberValue(this.registry.get('skill1CooldownTotalMs'), 5_000));
     const icon = this.skillSlot.icon as HTMLImageElement;
@@ -259,6 +264,7 @@ export class UIScene extends Phaser.Scene {
   };
 
   private togglePanel(panel: 'inventory' | 'character'): void {
+    if (this.registry.get('shopOpen') === true) return;
     this.panels.toggle(panel);
   }
 

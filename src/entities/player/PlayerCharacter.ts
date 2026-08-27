@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { combatTargets } from '../../combat/CombatTargets';
+import { DODGE_CONFIG, DodgeState } from '../../data/dodge';
 
 import { GAMEPLAY_SKINS_BY_CLASS, getCharacterSkin } from '../../data/characterSkins';
 import { PLAYER_CLASS_CONFIGS, type PlayerClassConfig } from '../../data/playerClasses';
@@ -19,6 +21,12 @@ type ManaChangedHandler = (mana: number, maxMana: number) => void;
 const WORLD_CHARACTER_RENDER_SCALE = 1.15;
 
 export class PlayerCharacter {
+  public readonly targetId = 'player';
+  public readonly targetType = 'player' as const;
+  public readonly priority = 1.2;
+  private readonly dodgeState = new DodgeState();
+  private dodgeX = 0;
+  private dodgeY = 0;
   public readonly visual: Phaser.GameObjects.Sprite;
   private readonly root: Phaser.GameObjects.Zone;
   private readonly body: Phaser.Physics.Arcade.Body;
@@ -63,6 +71,7 @@ export class PlayerCharacter {
       .setOrigin(skin.origin.x, skin.origin.y)
       .setScale(skin.displayScale * WORLD_CHARACTER_RENDER_SCALE)
       .setDepth(10);
+    combatTargets(scene).add(this);
     this.applyVisualState('idle');
     this.body.setCollideWorldBounds(true);
     this.visual.on(Phaser.Animations.Events.ANIMATION_UPDATE, this.handleAnimationUpdate, this);
@@ -75,13 +84,14 @@ export class PlayerCharacter {
   public updateResources(time: number, delta: number): void {
     if (this.mana >= this.maxMana || time - this.lastManaSpendAt < PLAYER_RESOURCES.manaRegenDelayMs) return;
     const previous = this.mana;
-    this.mana = Math.min(this.maxMana, this.mana + PLAYER_RESOURCES.manaRegenPerSecond * delta / 1000);
+    this.mana = Math.min(this.maxMana, this.mana + (PLAYER_RESOURCES.manaRegenPerSecond + this.bonuses.manaRegen) * delta / 1000);
     if (Math.floor(previous) !== Math.floor(this.mana) || this.mana === this.maxMana) this.onManaChanged(this.mana, this.maxMana);
   }
 
   public move(up: boolean, down: boolean, left: boolean, right: boolean): void {
     this.syncVisual();
     if (this.health <= 0) { this.body.setVelocity(0, 0); return; }
+    if (this.dodging) { this.body.setVelocity(this.dodgeX, this.dodgeY); return; }
     if (this.scene.time.now < this.knockbackUntil) return;
     if (this.state === 'attack') {
       this.body.setVelocity(0, 0);
@@ -104,7 +114,7 @@ export class PlayerCharacter {
   }
 
   public attack(worldX: number, worldY: number): boolean {
-    if (this.state === 'attack' || this.health <= 0 || this.scene.time.now < this.knockbackUntil) return false;
+    if (this.dodging || this.state === 'attack' || this.health <= 0 || this.scene.time.now < this.knockbackUntil) return false;
     const aim = new Phaser.Math.Vector2(worldX - this.x, worldY - this.y);
     if (aim.lengthSq() === 0) return false;
     aim.normalize();
@@ -151,7 +161,7 @@ export class PlayerCharacter {
 
   public takeDamage(damage: number, sourceX: number, sourceY: number): boolean {
     const now = this.scene.time.now;
-    if (this.health <= 0 || now < this.invulnerableUntil) return false;
+    if (this.health <= 0 || this.dodgeState.invulnerable(now) || now < this.invulnerableUntil) return false;
     this.health = Math.max(0, this.health - damage);
     this.invulnerableUntil = now + 650; this.knockbackUntil = now + 115;
     const knockback = new Phaser.Math.Vector2(this.x - sourceX, this.y - sourceY);
@@ -199,6 +209,20 @@ export class PlayerCharacter {
     this.visual.setPosition(this.root.x, this.root.y).setDepth(Math.floor(this.root.y));
   }
 
+  public dodge(moveX: number, moveY: number, aimX: number, aimY: number): boolean {
+    if (!this.alive || this.scene.time.now < this.knockbackUntil || !this.dodgeState.start(this.scene.time.now)) return false;
+    this.resetVisualState(false);
+    const direction = new Phaser.Math.Vector2(moveX, moveY);
+    if (!direction.lengthSq()) direction.set(aimX, aimY);
+    if (!direction.lengthSq()) direction.set(this.aimX, this.aimY);
+    direction.normalize().scale(DODGE_CONFIG.speed);
+    this.dodgeX = direction.x; this.dodgeY = direction.y;
+    this.body.setVelocity(this.dodgeX, this.dodgeY); this.playIdle(); return true;
+  }
+  public cancelDodge(): void { this.dodgeState.cancel(); }
+  public get alive(): boolean { return this.root.active && this.health > 0; }
+  public get dodging(): boolean { return this.dodgeState.active(this.scene.time.now); }
+  public get dodgeCooldown(): number { return this.dodgeState.cooldown(this.scene.time.now); }
   public get x(): number { return this.root.x; }
   public get y(): number { return this.root.y; }
   public get activeClass(): PlayerClassId { return this.classId; }
@@ -220,13 +244,15 @@ export class PlayerCharacter {
   }
 
   public destroy(): void {
+    combatTargets(this.scene).remove(this); this.dodgeState.cancel();
     this.visual.off(Phaser.Animations.Events.ANIMATION_UPDATE, this.handleAnimationUpdate, this);
     this.visual.off(Phaser.Animations.Events.ANIMATION_COMPLETE, this.handleAnimationComplete, this);
     this.visual.destroy();
     this.root.destroy();
   }
 
-  private resetVisualState(): void {
+  private resetVisualState(cancelDodge = true): void {
+    if (cancelDodge) this.dodgeState.cancel();
     const skin = getCharacterSkin(this.skinId);
     this.state = 'idle'; this.activeAttackKey = ''; this.impactTriggered = false; this.pendingSkillId = undefined;
     this.body.setVelocity(0, 0); this.visual.stop();

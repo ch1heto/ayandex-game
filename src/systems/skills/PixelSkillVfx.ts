@@ -29,6 +29,13 @@ export class PixelSkillVfx {
     this.effects.forEach(effect => effect.graphics.destroy()); this.effects = [];
     this.echoes.forEach(echo => echo.image.destroy()); this.echoes = [];
   }
+  public afterimage(source: Phaser.GameObjects.Sprite, color: number): void {
+    if (this.echoes.length >= 9) this.echoes.shift()?.image.destroy();
+    const image = this.scene.add.image(Math.round(source.x), Math.round(source.y), source.texture.key, source.frame.name)
+      .setOrigin(source.originX, source.originY).setScale(source.scaleX, source.scaleY).setFlipX(source.flipX)
+      .setTint(color).setAlpha(.48).setDepth(source.depth - 1);
+    this.echoes.push({ image, born: this.scene.time.now, lifetime: 220 });
+  }
   public bowRelease(x: number, y: number, angle: number): void {
     this.effect(x, y, 170, (g, p) => {
       for (const side of [-1, 1]) {
@@ -153,14 +160,6 @@ export class PixelSkillVfx {
           if (fall < 1) { line(g, px - 7, top - 22, px, top, 0xbfeeb8, 2); line(g, px - 10, top - 34, px - 7, top - 24, 0x4cae91, 2, .6); }
           else { line(g, px - 3, py - 10, px, py, 0xe7d49c, 2, 1 - p); pixel(g, px + 3, py - 3, 3, color, 1 - p); }
         }
-      });
-    } else if (id === 'arcane-meteor') {
-      this.effect(x, y, 290, (g, p) => {
-        const px = -65 * (1 - p), py = -180 * (1 - p);
-        for (let i = 6; i >= 0; i--) {
-          pixel(g, px - i * 5, py - i * 11, 14 - i, i % 2 ? 0x7955aa : 0x5caccf, .85 - i * .1);
-        }
-        pixel(g, px, py, 17, 0x9b80e7); pixel(g, px + 2, py + 3, 10, 0xa3f4f0); pixel(g, px + 4, py + 5, 5, 0xffffff);
       });
     } else this.impact(x, y - 20, color);
   }

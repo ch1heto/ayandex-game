@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { ArcaneEchoSystem } from './ArcaneEchoSystem';
 import { ARCANE_BIND_CONTROL } from '../../data/arcane';
 import { getCharacterSkin } from '../../data/characterSkins';
 import { ADVANCED_SKILLS, type AdvancedSkillConfig } from '../../data/advancedSkills';
@@ -13,7 +14,7 @@ import { PLAYER_CLASS_CONFIGS } from '../../data/playerClasses';
 import { t } from '../../i18n/LocalizationService';
 import { notify } from '../notifications/notifications';
 import { PixelSkillVfx } from './PixelSkillVfx';
-type Context = { player: PlayerCharacter; slimes: MossSlimeSpawner; spiders: EmberSpiderSpawner; projectiles: ProjectileSystem; obstacles: Phaser.Types.Physics.Arcade.ArcadeColliderType };
+type Context = { echoes: ArcaneEchoSystem; player: PlayerCharacter; slimes: MossSlimeSpawner; spiders: EmberSpiderSpawner; projectiles: ProjectileSystem; obstacles: Phaser.Types.Physics.Arcade.ArcadeColliderType };
 type Cast = { skill: AdvancedSkillConfig; x: number; y: number; rootX: number; rootY: number; angle: number; damage: number; born: number; classId: PlayerClassId };
 type Enemy = MossSlime | EmberSpider;
 export class AdvancedSkillSystem {
@@ -39,12 +40,13 @@ export class AdvancedSkillSystem {
     direction.normalize();
     const x = skill.range ? Math.round(player.x + direction.x * distance) : player.x;
     const y = skill.range ? Math.round(player.y + direction.y * distance) : player.y;
+    if (skill.id === 'arcane-echoes' && this.context.echoes.positions().length !== 3) { notify(this.scene, t('skill.echoBlocked'), 'echo-blocked'); return false; }
     if (!player.useSkillAttack(player.x + direction.x * 100, player.y + direction.y * 100, skill.id)) return false;
     player.spendMana(skill.mana);
     this.ready.set(skill.id, this.scene.time.now + skill.cooldownMs * player.cooldownMultiplier);
     this.pending = { skill, x, y, rootX: player.x, rootY: player.y, angle, damage: Math.round(player.finalDamage * skill.multiplier), born: this.scene.time.now, classId: player.activeClass };
     this.vfx.anticipation(player.x, player.y, skill.color, skill.anticipationMs + 160);
-    if (slot === 3 && player.activeClass !== 'warrior') {
+    if (skill.id === 'arrow-rain') {
       const attack = getCharacterSkin(player.activeSkin).animations.attack;
       const release = attack.releaseFrame ?? getCharacterSkin(player.activeSkin).attackImpactFrame;
       const castMs = Math.max(skill.anticipationMs, release / attack.frameRate * 1000);
@@ -62,6 +64,7 @@ export class AdvancedSkillSystem {
     return true;
   }
   public update(time: number): void { this.vfx.update(time); }
+  public cancelPending(): void { this.pending = undefined; }
   public cancel(): void { this.pending = undefined; this.timers.forEach(timer => timer.remove(false)); this.timers.clear(); this.vfx.destroy(); }
   public destroy(): void { this.cancel(); }
   private delay(ms: number, action: () => void): void {
@@ -100,12 +103,11 @@ export class AdvancedSkillSystem {
         this.vfx.cast(skill.id, x, y, skill.radius, skill.color, angle);
         this.delay(230, () => this.area(cast, x, y));
       });
-    } else if (skill.id === 'arcane-meteor') {
-      this.vfx.cast(skill.id, x, y, skill.radius, skill.color, angle);
-      this.delay(290, () => {
-        this.area(cast, x, y); this.vfx.impact(x, y, skill.color, true);
-        this.scene.cameras.main.shake(75, .0015, true);
-      });
+    } else if (skill.id === 'arcane-echoes') {
+      if (!this.context.echoes.cast()) {
+        this.context.player.restoreMana(skill.mana); this.ready.delete(skill.id);
+        notify(this.scene, t('skill.echoBlocked'), 'echo-blocked');
+      }
     } else {
       this.vfx.cast(skill.id, rootX, rootY, skill.radius, skill.color, angle);
       this.area(cast, rootX, rootY);

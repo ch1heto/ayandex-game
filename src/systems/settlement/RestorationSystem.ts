@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ForgeShop } from '../../ui/ForgeShop';
 
 import forgeRuinedGroundUrl from '../../../assets/environments/ashvale-hub/building-layers/forge-ruined-ground.png';
 import forgeRuinedBuildingUrl from '../../../assets/environments/ashvale-hub/building-layers/forge-ruined-building.png';
@@ -34,6 +35,7 @@ const FORGE_RESTORED_LIVE_TEXTURE = 'world-forge-restored-building-live-smoke';
 const FORGE_COST = 12;
 const INFIRMARY_COST = 16;
 const BOARD_POSITION = { x: 1920, y: 1218 } as const;
+const FORGE_INTERACTION_POSITION = { x: 1670, y: 1134 } as const;
 const INFIRMARY_INTERACTION_POSITION = { x: 2170, y: 1134 } as const;
 const INTERACTION_RANGE = 110;
 const BUILDING_SCALE = 0.28;
@@ -134,6 +136,7 @@ export class RestorationSystem {
   private readonly infirmary: BuildingLayerPair;
   private readonly forgeSmoke: ForgeSmokeEmitter;
   private readonly forgeFire: ForgeFireEffects;
+  private readonly shop: ForgeShop;
   private modal?: HTMLDivElement;
 
   public constructor(
@@ -142,6 +145,7 @@ export class RestorationSystem {
     collisionGroup: Phaser.Physics.Arcade.StaticGroup,
     private readonly onCoinsChanged: (coins: number) => void,
   ) {
+    this.shop = new ForgeShop(scene, player);
     this.ensureAnimatedForgeTexture();
     Object.values(TEXTURES).forEach((key) => scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST));
     const progress = gameProgressService.snapshot;
@@ -156,18 +160,21 @@ export class RestorationSystem {
     if (progress.buildings.forge) { this.forgeSmoke.start(); this.forgeFire.start(); }
   }
 
-  public get isModalOpen(): boolean { return this.modal !== undefined; }
+  public get isModalOpen(): boolean { return this.modal !== undefined || this.shop.isOpen; }
 
   public update(): void {
-    if (this.modal) { this.scene.registry.set('interactionPromptKey', ''); return; }
+    this.shop.update();
+    if (this.shop.isOpen && !this.isNear(FORGE_INTERACTION_POSITION)) this.shop.close();
+    if (this.isModalOpen) { this.scene.registry.set('interactionPromptKey', ''); return; }
     const progress = gameProgressService.snapshot;
     const nearInfirmary = progress.buildings.infirmary && this.isNear(INFIRMARY_INTERACTION_POSITION);
     const nearBoard = this.isNear(BOARD_POSITION);
-    this.scene.registry.set('interactionPromptKey', nearInfirmary ? 'heal.interact' : nearBoard ? 'restore.interact' : '');
+    this.scene.registry.set('interactionPromptKey', nearInfirmary ? 'heal.interact' : progress.buildings.forge && this.isNear(FORGE_INTERACTION_POSITION) ? 'shop.interact' : nearBoard ? 'restore.interact' : '');
   }
 
   public interact(): boolean {
-    if (this.modal) return false;
+    if (this.isModalOpen) return false;
+    if (gameProgressService.snapshot.buildings.forge && this.isNear(FORGE_INTERACTION_POSITION)) { this.shop.open(); return true; }
     if (gameProgressService.snapshot.buildings.infirmary && this.isNear(INFIRMARY_INTERACTION_POSITION)) {
       this.openHealingModal();
       return true;
@@ -178,6 +185,7 @@ export class RestorationSystem {
   }
 
   public destroy(): void {
+    this.shop.destroy();
     this.modal?.remove();
     this.modal = undefined;
     this.scene.registry.set('interactionPromptKey', '');

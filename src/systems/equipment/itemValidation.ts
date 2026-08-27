@@ -1,4 +1,4 @@
-import { EMPTY_STATS, ITEM_DEFINITIONS, ITEM_RARITIES, type ItemInstance, type ItemKind, type ItemStats } from '../../data/equipment';
+import { AFFIXES, EMPTY_STATS, ITEM_DEFINITIONS, ITEM_RARITIES, type AffixId, type ItemAffix, type ItemInstance, type ItemKind, type ItemStats } from '../../data/equipment';
 
 export function finiteInt(value: unknown, fallback: number, min = 0, max = 1_000_000): number {
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(min, Math.min(max, Math.floor(value))) : fallback;
@@ -19,5 +19,14 @@ export function validateItem(value: unknown): ItemInstance | undefined {
   }
   if (item.kind === 'armor') { stats.damage = 0; stats.cooldownReduction = 0; }
   else { stats.maxHealth = 0; stats.movementSpeed = 0; }
-  return { id: item.id, kind: item.kind as ItemKind, rarity: item.rarity as ItemInstance['rarity'], itemLevel: finiteInt(item.itemLevel, 1, 1, 100), stats };
+  const affixes: ItemAffix[] = [];
+  const rarityIndex = ITEM_RARITIES.indexOf(item.rarity as ItemInstance['rarity']);
+  const maxAffixes = rarityIndex === 0 ? 0 : rarityIndex < 3 ? 1 : 2;
+  for (const raw of Array.isArray(item.affixes) ? item.affixes : []) {
+    const affix = object(raw), id = affix.id as AffixId;
+    if (!Object.hasOwn(AFFIXES, id) || affixes.some(existing => existing.id === id) || affixes.length >= maxAffixes) continue;
+    if (typeof affix.value !== 'number' || !Number.isFinite(affix.value) || affix.value <= 0) continue;
+    affixes.push({ id, value: Math.min(AFFIXES[id].cap, affix.value) });
+  }
+  return { id: item.id, kind: item.kind as ItemKind, rarity: item.rarity as ItemInstance['rarity'], itemLevel: finiteInt(item.itemLevel, 1, 1, 10000), stats, affixes };
 }

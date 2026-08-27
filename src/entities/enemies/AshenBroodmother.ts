@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { combatTargets, TargetSelector } from '../../combat/CombatTargets';
 import { EmberSpider } from './EmberSpider';
 import { EmberSpiderAnimation } from './emberSpiderAssets';
 import type { PlayerCharacter } from '../player/PlayerCharacter';
@@ -8,6 +9,8 @@ const C = DUNGEON_CONFIG.boss;
 type Action = 'idle' | 'lunge-windup' | 'lunge' | 'venom-windup' | 'zone-windup';
 type Zone = { root: Phaser.GameObjects.Zone; art: Phaser.GameObjects.Graphics; born: number; nextHit: number; x: number; y: number };
 export class AshenBroodmother extends EmberSpider {
+  private readonly lungeTargets: TargetSelector;
+  private readonly lungeHits = new Set<string>();
   private phase = 1;
   private action: Action = 'idle';
   private actionUntil = 0;
@@ -29,6 +32,7 @@ export class AshenBroodmother extends EmberSpider {
     obstacles: Phaser.Types.Physics.Arcade.ArcadeColliderType,
   ) {
     super(bossScene, x, y, hero, onDeath, onEngage, undefined, C.maxHealth);
+    this.lungeTargets = new TargetSelector(combatTargets(bossScene), 3);
     this.visual.setScale(C.scale); this.visual.setName('ashen-broodmother');
     const body = this.hurtbox.body as Phaser.Physics.Arcade.Body; body.setSize(108, 68); this.hurtbox.setSize(108, 68);
     this.overlay = bossScene.add.graphics(); this.telegraph = bossScene.add.graphics(); this.effects = new PixelSkillVfx(bossScene);
@@ -40,10 +44,6 @@ export class AshenBroodmother extends EmberSpider {
       g.generateTexture('boss-venom', 14, 13); g.destroy(); bossScene.textures.get('boss-venom').setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     this.bolts = bossScene.physics.add.group({ allowGravity: false });
-    this.collisions.push(bossScene.physics.add.overlap(hero.physicsRoot, this.bolts, (_hero, object) => {
-      const bolt = object as Phaser.Physics.Arcade.Sprite;
-      if (!bolt.active) return; hero.takeDamage(C.venomDamage, bolt.x, bolt.y); bolt.destroy();
-    }));
     this.collisions.push(bossScene.physics.add.collider(this.bolts, obstacles, object => (object as Phaser.Physics.Arcade.Sprite).destroy()));
   }
   public override get isBoss(): boolean { return true; }
@@ -69,7 +69,11 @@ export class AshenBroodmother extends EmberSpider {
     if (this.phase === 2 && ratio <= .3) { this.phase = 3; this.effects.impact(this.visual.x, this.visual.y, 0xdf7999, true); }
     this.drawArmor(time); this.updateHazards(time);
     if (this.action === 'lunge') {
-      if (this.bossScene.physics.overlap(this.hurtbox, this.hero.physicsRoot)) this.hero.takeDamage(C.lungeDamage, this.visual.x, this.visual.y);
+      for (const target of combatTargets(this.bossScene).all()) {
+        if (!this.lungeHits.has(target.targetId) && this.bossScene.physics.overlap(this.hurtbox, target.physicsRoot)) {
+          this.lungeHits.add(target.targetId); target.takeDamage(C.lungeDamage, this.visual.x, this.visual.y);
+        }
+      }
       if (time >= this.actionUntil) this.finishAction(time);
       return;
     }
@@ -78,7 +82,7 @@ export class AshenBroodmother extends EmberSpider {
       if (time < this.actionUntil) return;
       this.telegraph.clear();
       if (this.action === 'lunge-windup') {
-        this.action = 'lunge'; this.actionUntil = time + C.lungeDurationMs;
+        this.lungeHits.clear(); this.action = 'lunge'; this.actionUntil = time + C.lungeDurationMs;
         this.visual.play(EmberSpiderAnimation.Move, true);
         const speed = C.lungeSpeed * (this.phase === 3 ? 1.1 : 1) * this.modifiers.speedMultiplier;
         this.visual.setVelocity(this.aim.x * speed, this.aim.y * speed);
@@ -94,6 +98,10 @@ export class AshenBroodmother extends EmberSpider {
       if (!this.aim.lengthSq()) this.aim.set(1, 0); this.aim.normalize();
       const kind = this.attackIndex++ % (this.phase >= 2 ? 3 : 2);
       this.action = kind === 0 ? 'lunge-windup' : kind === 1 ? 'venom-windup' : 'zone-windup';
+      if (kind === 0) {
+        const target = this.lungeTargets.choose(time, this.visual.x, this.visual.y);
+        if (target) { this.aim.set(target.x - this.visual.x, target.y - this.visual.y); if (!this.aim.lengthSq()) this.aim.set(1, 0); this.aim.normalize(); }
+      }
       this.actionUntil = time + (this.action === 'lunge-windup' ? C.lungeWindupMs : 650);
       this.visual.setVelocity(0).play(EmberSpiderAnimation.Idle, true);
     } else if (distance > 155) {
@@ -148,7 +156,12 @@ export class AshenBroodmother extends EmberSpider {
   private updateHazards(time: number): void {
     for (const object of this.bolts.getChildren()) {
       const bolt = object as Phaser.Physics.Arcade.Sprite;
-      if (time >= Number(bolt.getData('expires'))) bolt.destroy(); else bolt.setDepth(Math.floor(bolt.y) + 2);
+      if (time >= Number(bolt.getData('expires'))) { bolt.destroy(); continue; }
+      bolt.setDepth(Math.floor(bolt.y) + 2);
+      for (const target of combatTargets(this.bossScene).all()) {
+        if (!bolt.active) break;
+        if (this.bossScene.physics.overlap(bolt, target.physicsRoot) && target.takeDamage(C.venomDamage, bolt.x, bolt.y)) bolt.destroy();
+      }
     }
     this.zones = this.zones.filter(zone => {
       const age = time - zone.born;
@@ -160,8 +173,9 @@ export class AshenBroodmother extends EmberSpider {
         for (const r of [22, 42]) line(g, Math.cos(a) * r, Math.sin(a) * r, Math.cos(a + Math.PI / 4) * r, Math.sin(a + Math.PI / 4) * r, active ? 0x9b75a9 : 0xd3b5c6, 2, .65);
       }
       if (active) for (let i = 0; i < 5; i++) pixel(g, Math.cos(i * 4) * 28, Math.sin(i * 4) * 28 - (Math.floor(time / 120) + i) % 9, 3, 0xb8c484, .7);
-      if (active && time >= zone.nextHit && Phaser.Math.Distance.Between(zone.x, zone.y, this.hero.x, this.hero.y) < C.zoneRadius && this.bossScene.physics.overlap(zone.root, this.hero.physicsRoot)) {
-        zone.nextHit = time + C.zoneTickMs; this.hero.takeDamage(C.zoneDamage, zone.x, zone.y);
+      if (active && time >= zone.nextHit) {
+        zone.nextHit = time + C.zoneTickMs;
+        for (const target of combatTargets(this.bossScene).all()) if (Math.hypot(zone.x - target.x, zone.y - target.y) < C.zoneRadius && this.bossScene.physics.overlap(zone.root, target.physicsRoot)) target.takeDamage(C.zoneDamage, zone.x, zone.y);
       }
       return true;
     });

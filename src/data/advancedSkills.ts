@@ -1,6 +1,7 @@
+import { ECHO_CONFIG } from './echoes';
 import type { PlayerClassId } from '../entities/player/playerTypes';
 import type { TranslationKey } from '../i18n/LocalizationService';
-export type AdvancedSkillId = 'whirlwind' | 'seismic-slam' | 'multishot' | 'arrow-rain' | 'arcane-bind' | 'arcane-meteor';
+export type AdvancedSkillId = 'whirlwind' | 'seismic-slam' | 'multishot' | 'arrow-rain' | 'arcane-bind' | 'arcane-echoes';
 export type AdvancedSkillConfig = { id: AdvancedSkillId; name: TranslationKey; mana: number; cooldownMs: number; multiplier: number; radius: number; range: number; color: number; anticipationMs: number; pulses?: number; intervalMs?: number };
 export const ADVANCED_SKILLS: Record<PlayerClassId, Record<2 | 3, AdvancedSkillConfig>> = {
   warrior: {
@@ -13,6 +14,6 @@ export const ADVANCED_SKILLS: Record<PlayerClassId, Record<2 | 3, AdvancedSkillC
   },
   mage: {
     2: { id: 'arcane-bind', name: 'skill.arcane-bind', mana: 25, cooldownMs: 7000, multiplier: 1.1, radius: 0, range: 350, color: 0x92deff, anticipationMs: 140 },
-    3: { id: 'arcane-meteor', name: 'skill.arcane-meteor', mana: 45, cooldownMs: 13000, multiplier: 2.6, radius: 90, range: 270, color: 0xb397ff, anticipationMs: 650 },
+    3: { id: 'arcane-echoes', name: 'skill.arcane-echoes', mana: ECHO_CONFIG.mana, cooldownMs: ECHO_CONFIG.cooldownMs, multiplier: ECHO_CONFIG.damageFraction, radius: 54, range: 0, color: 0xb397ff, anticipationMs: 220 },
   },
 };
