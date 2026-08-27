@@ -1,8 +1,11 @@
+import { contentTranslations } from './contentTranslations';
+
 export type Language = 'ru' | 'en';
 
 const STORAGE_KEY = 'ashvale-language';
 const dictionaries = {
   ru: {
+    ...contentTranslations.ru,
     'menu.subtitle': 'ЭХО РАЗЛОМОВ', 'menu.begin': 'НАЧАТЬ ПУТЬ',
     'menu.hint': 'Выберите класс и боевой облик перед входом в Эшвейл',
     'menu.settings': 'НАСТРОЙКИ', 'menu.preview': 'ПРОСМОТР ОБЛИКОВ',
@@ -16,6 +19,18 @@ const dictionaries = {
     'select.back': 'НАЗАД', 'select.play': 'ИГРАТЬ', 'select.sideOnly': 'ТОЛЬКО ВИД СБОКУ',
     'class.warrior': 'ВОИН', 'class.archer': 'ЛУЧНИК', 'class.mage': 'МАГ',
     'hud.status': 'Состояние игрока',
+    'hud.level': 'Ур. {level}', 'hud.xp': 'ОПЫТ', 'hud.mana': 'МАНА',
+    'hud.inventory': 'Инвентарь', 'hud.character': 'Персонаж',
+    'hud.inventoryTitle': 'ИНВЕНТАРЬ', 'hud.characterTitle': 'ПЕРСОНАЖ', 'hud.closeHint': 'I / C — закрыть',
+    'hud.potions': 'Зелья', 'hud.noEquipment': 'Экипировка пока недоступна',
+    'hud.hotbarLocked': 'ЗАКРЫТО', 'hud.minimap': 'Карта местности', 'hud.objectives': 'ЦЕЛИ',
+    'objective.slime': 'Победить слизней', 'objective.spider': 'Победить пауков',
+    'objective.slimeComplete': 'Цель выполнена: слизни', 'objective.spiderComplete': 'Цель выполнена: пауки',
+    'target.slime': 'МШИСТЫЙ СЛИЗЕНЬ', 'target.spider': 'УГОЛЬНЫЙ ПАУК',
+    'notify.xp': '+{xp} ОПЫТА', 'notify.level': 'НОВЫЙ УРОВЕНЬ: {level}',
+    'potion.health': 'Лечебное зелье', 'potion.mana': 'Зелье маны', 'potion.empty': 'Зелья закончились',
+    'potion.healthFull': 'Здоровье уже полное', 'potion.manaFull': 'Мана уже полная',
+    'potion.healthUsed': '+30 здоровья', 'potion.manaUsed': '+35 маны',
     'restore.interact': 'Нажмите F, чтобы открыть доску восстановления', 'restore.title': 'ДОСКА ВОССТАНОВЛЕНИЯ',
     'restore.coins': 'МОНЕТЫ: {coins}', 'restore.forge': 'КУЗНИЦА', 'restore.infirmary': 'ЛЕЧЕБНИЦА',
     'restore.restored': 'ВОССТАНОВЛЕНО', 'restore.cost': '{building} · {cost} МОНЕТ', 'restore.price': '{cost} МОНЕТ', 'restore.close': 'ЗАКРЫТЬ',
@@ -28,6 +43,7 @@ const dictionaries = {
     'region.slime': 'СУМЕРЕЧНАЯ РОЩА', 'region.hub': 'РУИНЫ ЭШВЕЙЛА', 'region.spider': 'ПАУТИННАЯ ЛОЩИНА',
   },
   en: {
+    ...contentTranslations.en,
     'menu.subtitle': 'ECHOES OF THE RIFTS', 'menu.begin': 'BEGIN JOURNEY',
     'menu.hint': 'Choose your class and battle skin before entering Ashvale',
     'menu.settings': 'SETTINGS', 'menu.preview': 'SKIN PREVIEW',
@@ -41,6 +57,18 @@ const dictionaries = {
     'select.back': 'BACK', 'select.play': 'PLAY', 'select.sideOnly': 'SIDE VIEW ONLY',
     'class.warrior': 'WARRIOR', 'class.archer': 'ARCHER', 'class.mage': 'MAGE',
     'hud.status': 'Player status',
+    'hud.level': 'Lv. {level}', 'hud.xp': 'XP', 'hud.mana': 'MANA',
+    'hud.inventory': 'Inventory', 'hud.character': 'Character',
+    'hud.inventoryTitle': 'INVENTORY', 'hud.characterTitle': 'CHARACTER', 'hud.closeHint': 'I / C — close',
+    'hud.potions': 'Potions', 'hud.noEquipment': 'Equipment is not available yet',
+    'hud.hotbarLocked': 'LOCKED', 'hud.minimap': 'Area map', 'hud.objectives': 'OBJECTIVES',
+    'objective.slime': 'Defeat slimes', 'objective.spider': 'Defeat spiders',
+    'objective.slimeComplete': 'Objective complete: slimes', 'objective.spiderComplete': 'Objective complete: spiders',
+    'target.slime': 'MOSS SLIME', 'target.spider': 'EMBER SPIDER',
+    'notify.xp': '+{xp} XP', 'notify.level': 'LEVEL UP: {level}',
+    'potion.health': 'Health potion', 'potion.mana': 'Mana potion', 'potion.empty': 'No potions left',
+    'potion.healthFull': 'Health is already full', 'potion.manaFull': 'Mana is already full',
+    'potion.healthUsed': '+30 health', 'potion.manaUsed': '+35 mana',
     'restore.interact': 'Press F to open the restoration board', 'restore.title': 'RESTORATION BOARD',
     'restore.coins': 'COINS: {coins}', 'restore.forge': 'FORGE', 'restore.infirmary': 'INFIRMARY',
     'restore.restored': 'RESTORED', 'restore.cost': '{building} · {cost} COINS', 'restore.price': '{cost} COINS', 'restore.close': 'CLOSE',

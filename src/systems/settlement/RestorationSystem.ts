@@ -19,6 +19,8 @@ import { createDomOverlay } from '../../ui/domOverlay';
 import { t } from '../../i18n/LocalizationService';
 import { HEAL_PER_COIN } from '../../data/gameplayEconomy';
 import { ForgeSmokeEmitter } from './ForgeSmokeEmitter';
+import { ForgeFireEffects } from './ForgeFireEffects';
+import { notify } from '../notifications/notifications';
 
 const TEXTURES = {
   forgeRuinedGround: 'world-forge-ruined-ground', forgeRuinedBuilding: 'world-forge-ruined-building',
@@ -131,6 +133,7 @@ export class RestorationSystem {
   private readonly forge: BuildingLayerPair;
   private readonly infirmary: BuildingLayerPair;
   private readonly forgeSmoke: ForgeSmokeEmitter;
+  private readonly forgeFire: ForgeFireEffects;
   private modal?: HTMLDivElement;
 
   public constructor(
@@ -149,7 +152,8 @@ export class RestorationSystem {
     this.addBuildingFootprints(collisionGroup, 'infirmary');
     this.addFootprint(collisionGroup, BOARD_POSITION.x, BOARD_POSITION.y - 12, 72, 24);
     this.forgeSmoke = new ForgeSmokeEmitter(scene, BUILDING_POSITIONS.forge.x + 112, BUILDING_POSITIONS.forge.y - 319, BUILDING_POSITIONS.forge.baseY + 2);
-    if (progress.buildings.forge) this.forgeSmoke.start();
+    this.forgeFire = new ForgeFireEffects(scene, BUILDING_POSITIONS.forge.x + 106, BUILDING_POSITIONS.forge.y - 91, BUILDING_POSITIONS.forge.baseY + 3);
+    if (progress.buildings.forge) { this.forgeSmoke.start(); this.forgeFire.start(); }
   }
 
   public get isModalOpen(): boolean { return this.modal !== undefined; }
@@ -178,6 +182,7 @@ export class RestorationSystem {
     this.modal = undefined;
     this.scene.registry.set('interactionPromptKey', '');
     this.forgeSmoke.destroy();
+    this.forgeFire.destroy();
   }
 
   private addBuildingFootprints(group: Phaser.Physics.Arcade.StaticGroup, building: 'forge' | 'infirmary'): void {
@@ -344,7 +349,8 @@ export class RestorationSystem {
       this.onCoinsChanged(progress.coins);
       this.scene.registry.set(`${building}Restored`, true);
       this.setBuildingState(building, true);
-      if (building === 'forge') this.forgeSmoke.start();
+      notify(this.scene, t(building === 'forge' ? 'notify.forge' : 'notify.infirmary'));
+      if (building === 'forge') { this.forgeSmoke.start(); this.forgeFire.start(); }
       this.closeModal();
     });
     return button;

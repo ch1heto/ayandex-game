@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { gameProgressService } from '../systems/save/GameProgressService';
 
 import { SceneKey } from '../core/sceneKeys';
 import { GAMEPLAY_SKINS_BY_CLASS, PORTRAIT_SKIN_BY_CLASS, getCharacterSkin } from '../data/characterSkins';
@@ -14,6 +15,8 @@ export class CharacterSelectScene extends Phaser.Scene {
   public constructor() { super(SceneKey.CharacterSelect); }
 
   public create(): void {
+    const saved = gameProgressService.snapshot.selection;
+    if (saved.classId) { this.selectedClass = saved.classId; const index = GAMEPLAY_SKINS_BY_CLASS[saved.classId].findIndex(skin => skin.id === saved.skinId); if (index >= 0) this.skinIndex[saved.classId] = index; }
     this.overlay = createDomOverlay(this, 'character-select-ui');
     this.input.keyboard?.on('keydown', this.handleKeyDown, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
@@ -66,6 +69,7 @@ export class CharacterSelectScene extends Phaser.Scene {
 
   private playSelectedSkin(): void {
     const skin = GAMEPLAY_SKINS_BY_CLASS[this.selectedClass][this.skinIndex[this.selectedClass]]; if (!skin) return;
+    gameProgressService.select(this.selectedClass, skin.id);
     this.registry.set('selectedClass', this.selectedClass); this.registry.set('selectedSkin', skin.id);
     this.registry.set(`selectedSkin:${this.selectedClass}`, skin.id); this.scene.start(SceneKey.Game);
   }

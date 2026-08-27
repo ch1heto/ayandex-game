@@ -17,14 +17,14 @@ type SmokeLayer = {
 };
 
 const SMOKE_STEP_MS = 80;
-const SMOKE_STEPS = 16;
+const SMOKE_STEPS = 18;
 
 // Dense core, softer middle and sparse high wisps give the plume volume while
 // every rectangle remains locked to whole pixels with hard, unfiltered edges.
 const SMOKE_LAYERS: readonly SmokeLayer[] = [
-  { offsetX: -4, offsetY: 0, size: 10, color: 0x696863, alpha: .93, risePerStep: 2.35, drift: .5, delaySteps: 0 },
-  { offsetX: 4, offsetY: -1, size: 9, color: 0x88857f, alpha: .88, risePerStep: 2.5, drift: .62, delaySteps: 0 },
-  { offsetX: -6, offsetY: -4, size: 8, color: 0xa7a39a, alpha: .78, risePerStep: 2.8, drift: .78, delaySteps: 1 },
+  { offsetX: -4, offsetY: 0, size: 11, color: 0x696863, alpha: .91, risePerStep: 2.35, drift: .5, delaySteps: 0 },
+  { offsetX: 4, offsetY: -1, size: 10, color: 0x88857f, alpha: .84, risePerStep: 2.5, drift: .62, delaySteps: 0 },
+  { offsetX: -6, offsetY: -4, size: 9, color: 0xa7a39a, alpha: .74, risePerStep: 2.8, drift: .78, delaySteps: 1 },
   { offsetX: 5, offsetY: -7, size: 7, color: 0x7b7a75, alpha: .7, risePerStep: 3.05, drift: .94, delaySteps: 2 },
   { offsetX: -2, offsetY: -10, size: 6, color: 0xbeb9ae, alpha: .59, risePerStep: 3.3, drift: 1.08, delaySteps: 3 },
   { offsetX: 3, offsetY: -13, size: 4, color: 0xd0cabf, alpha: .48, risePerStep: 3.55, drift: 1.18, delaySteps: 4 },
@@ -47,7 +47,7 @@ export class ForgeSmokeEmitter {
     if (this.running) return;
     this.running = true;
     this.spawnPuff();
-    this.scheduleNext(320);
+    this.scheduleNext(280);
   }
 
   public destroy(): void {
@@ -65,7 +65,7 @@ export class ForgeSmokeEmitter {
     this.spawnTimer = this.scene.time.delayedCall(delay, () => {
       if (!this.running) return;
       this.spawnPuff();
-      this.scheduleNext(Phaser.Math.Between(390, 540));
+      this.scheduleNext(Phaser.Math.Between(340, 480));
     });
   }
 

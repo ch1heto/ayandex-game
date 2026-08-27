@@ -1,0 +1,209 @@
+{
+  "icons": [
+    {
+      "file": "assets\\equipment\\icons\\armor.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\equipment\\icons\\bow.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\equipment\\icons\\staff.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\equipment\\icons\\sword.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\whirlwind.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\seismic-slam.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\multishot.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\arrow-rain.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\frost-nova.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\arcane-meteor.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    }
+  ],
+  "menuOriginalHashMatches": true,
+  "menuGeometry": [
+    {
+      "viewport": [
+        1280,
+        720
+      ],
+      "scale": 0.7655502392344498,
+      "crop": [
+        0.0,
+        0.19138755980861788
+      ],
+      "buttonBounds": [
+        [
+          512.92,
+          306.03,
+          260.29,
+          58.95
+        ],
+        [
+          512.92,
+          375.69,
+          260.29,
+          58.95
+        ],
+        [
+          512.92,
+          445.36,
+          260.29,
+          58.95
+        ],
+        [
+          512.92,
+          515.02,
+          260.29,
+          58.95
+        ]
+      ]
+    },
+    {
+      "viewport": [
+        1366,
+        768
+      ],
+      "scale": 0.8169856459330144,
+      "crop": [
+        0.0,
+        0.3917464114832683
+      ],
+      "buttonBounds": [
+        [
+          547.38,
+          326.4,
+          277.78,
+          62.91
+        ],
+        [
+          547.38,
+          400.75,
+          277.78,
+          62.91
+        ],
+        [
+          547.38,
+          475.09,
+          277.78,
+          62.91
+        ],
+        [
+          547.38,
+          549.44,
+          277.78,
+          62.91
+        ]
+      ]
+    },
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "scale": 1.1483253588516746,
+      "crop": [
+        0.0,
+        0.2870813397129268
+      ],
+      "buttonBounds": [
+        [
+          769.38,
+          459.04,
+          390.43,
+          88.42
+        ],
+        [
+          769.38,
+          563.54,
+          390.43,
+          88.42
+        ],
+        [
+          769.38,
+          668.04,
+          390.43,
+          88.42
+        ],
+        [
+          769.38,
+          772.54,
+          390.43,
+          88.42
+        ]
+      ]
+    }
+  ],
+  "runtimeVisualQA": "BLOCKED: browser kernel sandbox setup failure"
+}

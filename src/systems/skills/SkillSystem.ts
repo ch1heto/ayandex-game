@@ -47,7 +47,7 @@ export class SkillSystem {
     const config = SKILL_1_CONFIGS[classId];
     if (this.scene.time.now < this.readyAt[classId]) return false;
     if (!this.context.player.useSkillAttack(targetX, targetY, config.id)) return false;
-    this.readyAt[classId] = this.scene.time.now + config.cooldownMs;
+    this.readyAt[classId] = this.scene.time.now + config.cooldownMs * this.context.player.cooldownMultiplier;
     if (config.behavior === 'heavy-slash') {
       const sector = createHeavySlashSector(
         Math.round(this.context.player.x),
@@ -160,7 +160,7 @@ export class SkillSystem {
     const base = PLAYER_CLASS_CONFIGS.archer;
     this.context.projectiles.spawn(
       base, impact.facing, impact.rootX, impact.rootY, impact.targetX, impact.targetY,
-      [this.context.slimes.group, this.context.spiders.group],
+      [this.context.slimes.group, this.context.spiders.hurtboxGroup],
       (target) => {
         const damage = this.skillDamage(skill);
         const slime = this.context.slimes.getSlime(target);
@@ -185,7 +185,7 @@ export class SkillSystem {
     const explode = (x: number, y: number) => this.magicBurst(x, y, skill, directTarget);
     this.context.projectiles.spawn(
       base, impact.facing, impact.rootX, impact.rootY, impact.targetX, impact.targetY,
-      [this.context.slimes.group, this.context.spiders.group],
+      [this.context.slimes.group, this.context.spiders.hurtboxGroup],
       (target) => {
         directTarget = target;
         const damage = this.skillDamage(skill);
@@ -207,11 +207,12 @@ export class SkillSystem {
   private magicBurst(x: number, y: number, skill: SkillConfig, directTarget?: Phaser.GameObjects.GameObject): void {
     const radius = skill.projectile?.splashRadius ?? 58;
     const damage = Math.round(this.skillDamage(skill) * (skill.projectile?.splashMultiplier ?? 0.55));
+    const directSpider = directTarget ? this.context.spiders.get(directTarget) : undefined;
     this.context.slimes.forEach((slime) => {
       if (slime.visual !== directTarget && Phaser.Math.Distance.Between(x, y, slime.visual.x, slime.visual.y) <= radius) slime.takeDamage(damage, x, y);
     });
     this.context.spiders.forEach((spider) => {
-      if (spider.visual !== directTarget && Phaser.Math.Distance.Between(x, y, spider.visual.x, spider.visual.y) <= radius) spider.takeDamage(damage, x, y);
+      if (spider !== directSpider && Phaser.Math.Distance.Between(x, y, spider.visual.x, spider.visual.y) <= radius) spider.takeDamage(damage, x, y);
     });
     [8, 24, 40, radius].forEach((ringRadius, step) => {
       this.scene.time.delayedCall(step * 38, () => this.pixelRing(x, y, ringRadius, skill.color));
@@ -294,7 +295,7 @@ export class SkillSystem {
   }
 
   private skillDamage(skill: SkillConfig): number {
-    return Math.round(PLAYER_CLASS_CONFIGS[skill.classId].attackDamage * skill.damageMultiplier);
+    return Math.round(this.context.player.finalDamage * skill.damageMultiplier);
   }
 
   private ensurePiercingShotTexture(): void {

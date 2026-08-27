@@ -4,6 +4,7 @@ export const SceneKey = {
   MainMenu: 'MainMenuScene',
   CharacterSelect: 'CharacterSelectScene',
   Game: 'GameScene',
+  Dungeon: 'DungeonScene',
   Hub: 'HubScene',
   SpiderZone: 'SpiderZoneScene',
   UI: 'UIScene',

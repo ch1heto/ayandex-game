@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 
 import { GAMEPLAY_SKINS_BY_CLASS, getCharacterSkin } from '../../data/characterSkins';
 import { PLAYER_CLASS_CONFIGS, type PlayerClassConfig } from '../../data/playerClasses';
+import { PLAYER_RESOURCES } from '../../data/playerResources';
+import { EMPTY_STATS, type ItemStats } from '../../data/equipment';
 import {
   characterAnimationKey,
   characterTextureKey,
@@ -12,6 +14,7 @@ import type { AttackImpact, Direction, PlayerClassId, PlayerState } from './play
 
 type AttackImpactHandler = (impact: AttackImpact) => void;
 type HealthChangedHandler = (health: number, maxHealth: number) => void;
+type ManaChangedHandler = (mana: number, maxMana: number) => void;
 
 const WORLD_CHARACTER_RENDER_SCALE = 1.15;
 
@@ -32,8 +35,11 @@ export class PlayerCharacter {
   private impactTriggered = false;
   private pendingSkillId?: string;
   private health: number;
+  private mana: number = PLAYER_RESOURCES.maxMana;
+  private lastManaSpendAt = Number.NEGATIVE_INFINITY;
   private invulnerableUntil = 0;
   private knockbackUntil = 0;
+  private bonuses: ItemStats = { ...EMPTY_STATS };
 
   public constructor(
     private readonly scene: Phaser.Scene,
@@ -43,6 +49,7 @@ export class PlayerCharacter {
     selectedSkin: string,
     private readonly onAttackImpact: AttackImpactHandler,
     private readonly onHealthChanged: HealthChangedHandler = () => undefined,
+    private readonly onManaChanged: ManaChangedHandler = () => undefined,
   ) {
     this.classId = selectedClass;
     this.skinId = this.requireGameplaySkin(selectedClass, selectedSkin);
@@ -62,11 +69,18 @@ export class PlayerCharacter {
     this.visual.on(Phaser.Animations.Events.ANIMATION_COMPLETE, this.handleAnimationComplete, this);
     this.playIdle();
     this.onHealthChanged(this.health, this.maxHealth);
+    this.onManaChanged(this.mana, this.maxMana);
+  }
+
+  public updateResources(time: number, delta: number): void {
+    if (this.mana >= this.maxMana || time - this.lastManaSpendAt < PLAYER_RESOURCES.manaRegenDelayMs) return;
+    const previous = this.mana;
+    this.mana = Math.min(this.maxMana, this.mana + PLAYER_RESOURCES.manaRegenPerSecond * delta / 1000);
+    if (Math.floor(previous) !== Math.floor(this.mana) || this.mana === this.maxMana) this.onManaChanged(this.mana, this.maxMana);
   }
 
   public move(up: boolean, down: boolean, left: boolean, right: boolean): void {
-    this.syncVisualToRoot();
-    this.visual.setDepth(Math.floor(this.visual.y));
+    this.syncVisual();
     if (this.health <= 0) { this.body.setVelocity(0, 0); return; }
     if (this.scene.time.now < this.knockbackUntil) return;
     if (this.state === 'attack') {
@@ -80,7 +94,7 @@ export class PlayerCharacter {
     this.facing = this.resolveMovementFacing(intent);
     if (intent.x < 0) this.horizontalFacing = 'left';
     if (intent.x > 0) this.horizontalFacing = 'right';
-    intent.normalize().scale(this.config.moveSpeed);
+    intent.normalize().scale(this.config.moveSpeed * (1 + this.bonuses.movementSpeed));
     this.body.setVelocity(intent.x, intent.y);
     this.state = 'move';
     const visualDirection = this.visualDirection;
@@ -154,8 +168,35 @@ export class PlayerCharacter {
     this.body.setVelocity(0, 0); this.state = 'idle'; this.playIdle(); this.onHealthChanged(this.health, this.maxHealth);
   }
 
+  public restoreHealth(amount: number): boolean {
+    if (this.health >= this.maxHealth || amount <= 0) return false;
+    this.health = Math.min(this.maxHealth, this.health + amount);
+    this.onHealthChanged(this.health, this.maxHealth);
+    return true;
+  }
+
+  public restoreMana(amount: number): boolean {
+    if (this.mana >= this.maxMana || amount <= 0) return false;
+    this.mana = Math.min(this.maxMana, this.mana + amount);
+    this.onManaChanged(this.mana, this.maxMana);
+    return true;
+  }
+
+  public spendMana(amount: number): boolean {
+    if (amount <= 0) return true;
+    if (this.mana < amount) return false;
+    this.mana -= amount;
+    this.lastManaSpendAt = this.scene.time.now;
+    this.onManaChanged(this.mana, this.maxMana);
+    return true;
+  }
+
   public setPosition(x: number, y: number): void {
-    this.root.setPosition(x, y); this.body.reset(x, y); this.syncVisualToRoot(); this.visual.setDepth(Math.floor(y));
+    this.root.setPosition(x, y); this.body.reset(x, y); this.syncVisual();
+  }
+
+  public syncVisual(): void {
+    this.visual.setPosition(this.root.x, this.root.y).setDepth(Math.floor(this.root.y));
   }
 
   public get x(): number { return this.root.x; }
@@ -167,7 +208,16 @@ export class PlayerCharacter {
   public get currentState(): PlayerState { return this.state; }
   public get config(): PlayerClassConfig { return PLAYER_CLASS_CONFIGS[this.classId]; }
   public get currentHealth(): number { return this.health; }
-  public get maxHealth(): number { return this.config.maxHealth; }
+  public get maxHealth(): number { return this.config.maxHealth + this.bonuses.maxHealth; }
+  public get currentMana(): number { return this.mana; }
+  public get maxMana(): number { return PLAYER_RESOURCES.maxMana + this.bonuses.maxMana; }
+  public get finalDamage(): number { return this.config.attackDamage + this.bonuses.damage; }
+  public get cooldownMultiplier(): number { return 1 - this.bonuses.cooldownReduction; }
+  public applyEquipment(bonuses: ItemStats): void {
+    this.bonuses = { ...bonuses };
+    this.health = Math.min(this.health, this.maxHealth); this.mana = Math.min(this.mana, this.maxMana);
+    this.onHealthChanged(this.health, this.maxHealth); this.onManaChanged(this.mana, this.maxMana);
+  }
 
   public destroy(): void {
     this.visual.off(Phaser.Animations.Events.ANIMATION_UPDATE, this.handleAnimationUpdate, this);
@@ -273,9 +323,6 @@ export class PlayerCharacter {
     this.body.setSize(18, 13).setOffset(0, 0);
   }
 
-  private syncVisualToRoot(): void {
-    this.visual.setPosition(Math.round(this.root.x), Math.round(this.root.y));
-  }
 }
 
 export function gameplaySkinIds(classId: PlayerClassId): readonly string[] {

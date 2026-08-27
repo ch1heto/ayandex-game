@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { EnemyModifiers } from './EnemyModifiers';
+import type { EliteAffix } from '../../data/elites';
 
 import { MOSS_SLIME_CONFIG } from '../../data/enemies';
 import type { PlayerCharacter } from '../player/PlayerCharacter';
@@ -7,6 +9,7 @@ import { MOSS_SLIME_ROOT_Y, MossSlimeAnimation } from './mossSlimeAssets';
 export type MossSlimeState = 'idle' | 'wander' | 'chase' | 'attack' | 'hurt' | 'dead';
 
 type DeathHandler = (slime: MossSlime, x: number, y: number) => void;
+type EngageHandler = (slime: MossSlime) => void;
 
 const ATTACK_IMPACT_FRAME = 2;
 
@@ -17,7 +20,8 @@ export class MossSlime {
 
   private readonly body: Phaser.Physics.Arcade.Body;
   private state: MossSlimeState = 'idle';
-  private health = MOSS_SLIME_CONFIG.maxHealth;
+  private health: number;
+  public readonly modifiers: EnemyModifiers;
   private nextDecisionAt = 0;
   private nextAttackAt = 0;
   private hurtUntil = 0;
@@ -30,6 +34,8 @@ export class MossSlime {
     y: number,
     private readonly player: PlayerCharacter,
     private readonly onDeath: DeathHandler,
+    private readonly onEngage: EngageHandler = () => undefined,
+    public readonly elite?: EliteAffix,
   ) {
     this.spawnX = x;
     this.spawnY = y;
@@ -42,6 +48,8 @@ export class MossSlime {
     this.body.setCollideWorldBounds(true);
     this.body.setSize(34, 18).setOffset(15, 40);
     this.body.setBounce(0.05);
+    this.modifiers = new EnemyModifiers(scene, this.visual, MOSS_SLIME_CONFIG.maxHealth, elite);
+    this.health = this.modifiers.maxHealth;
     this.visual.on(Phaser.Animations.Events.ANIMATION_UPDATE, this.handleAnimationUpdate, this);
     this.visual.on(Phaser.Animations.Events.ANIMATION_COMPLETE, this.handleAnimationComplete, this);
     this.play(MossSlimeAnimation.Idle);
@@ -50,6 +58,8 @@ export class MossSlime {
 
   public update(time: number): void {
     this.visual.setDepth(Math.floor(this.visual.y));
+    this.modifiers.update(time);
+    if (this.modifiers.staggered && this.state !== 'dead') { this.body.setVelocity(0); return; }
     if (this.state === 'dead' || this.state === 'attack') return;
 
     if (this.state === 'hurt') {
@@ -84,6 +94,7 @@ export class MossSlime {
   public takeDamage(damage: number, sourceX: number, sourceY: number): boolean {
     if (this.state === 'dead') return false;
     this.health = Math.max(0, this.health - damage);
+    this.onEngage(this);
     if (this.health === 0) {
       this.die();
       return true;
@@ -105,20 +116,21 @@ export class MossSlime {
 
   public get currentState(): MossSlimeState { return this.state; }
   public get currentHealth(): number { return this.health; }
-  public get maxHealth(): number { return MOSS_SLIME_CONFIG.maxHealth; }
+  public get maxHealth(): number { return this.modifiers.maxHealth; }
   public get x(): number { return this.visual.x; }
   public get y(): number { return this.visual.y; }
 
   public applyKnockback(sourceX: number, sourceY: number, speed: number): void {
     if (this.state === 'dead') return;
     const direction = new Phaser.Math.Vector2(this.visual.x - sourceX, this.visual.y - sourceY);
-    if (direction.lengthSq() > 0) direction.normalize().scale(speed);
+    if (direction.lengthSq() > 0) direction.normalize().scale(speed * this.modifiers.speedMultiplier);
     this.body.setVelocity(direction.x, direction.y);
   }
 
   public destroy(): void {
     this.visual.off(Phaser.Animations.Events.ANIMATION_UPDATE, this.handleAnimationUpdate, this);
     this.visual.off(Phaser.Animations.Events.ANIMATION_COMPLETE, this.handleAnimationComplete, this);
+    this.modifiers.destroy();
     this.visual.destroy();
   }
 
@@ -139,8 +151,8 @@ export class MossSlime {
         this.moveToward(this.spawnX, this.spawnY, MOSS_SLIME_CONFIG.moveSpeed * 0.75);
       } else {
         this.body.setVelocity(
-          this.wanderDirection.x * MOSS_SLIME_CONFIG.moveSpeed * 0.55,
-          this.wanderDirection.y * MOSS_SLIME_CONFIG.moveSpeed * 0.55,
+          this.wanderDirection.x * MOSS_SLIME_CONFIG.moveSpeed * 0.55 * this.modifiers.speedMultiplier,
+          this.wanderDirection.y * MOSS_SLIME_CONFIG.moveSpeed * 0.55 * this.modifiers.speedMultiplier,
         );
       }
       this.play(MossSlimeAnimation.Move);
@@ -190,7 +202,7 @@ export class MossSlime {
       this.body.setVelocity(0, 0);
       return;
     }
-    direction.normalize().scale(speed);
+    direction.normalize().scale(speed * this.modifiers.speedMultiplier);
     this.body.setVelocity(direction.x, direction.y);
     if (Math.abs(direction.x) > 2) this.visual.setFlipX(direction.x < 0);
   }
@@ -214,7 +226,7 @@ export class MossSlime {
     this.impactTriggered = true;
     const distance = Phaser.Math.Distance.Between(this.visual.x, this.visual.y, this.player.x, this.player.y);
     if (distance <= MOSS_SLIME_CONFIG.attackRange + 8) {
-      this.player.takeDamage(MOSS_SLIME_CONFIG.attackDamage, this.visual.x, this.visual.y);
+      if (this.player.takeDamage(Math.round(MOSS_SLIME_CONFIG.attackDamage * this.modifiers.damageMultiplier), this.visual.x, this.visual.y)) this.onEngage(this);
     }
   }
 

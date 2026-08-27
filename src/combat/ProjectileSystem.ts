@@ -85,7 +85,7 @@ export class ProjectileSystem {
       target,
       (_projectileObject, targetObject) => {
         const hitTarget = targetObject as Phaser.GameObjects.GameObject;
-        if (record.hitTargets.has(hitTarget)) return;
+        if (!sprite.active || !this.active.includes(record) || record.hitTargets.has(hitTarget)) return;
         record.hitTargets.add(hitTarget);
         onHit(hitTarget);
         record.hitsRemaining -= 1;

@@ -1,0 +1,14 @@
+import sword from '../../assets/equipment/icons/sword.png';
+import bow from '../../assets/equipment/icons/bow.png';
+import staff from '../../assets/equipment/icons/staff.png';
+import armor from '../../assets/equipment/icons/armor.png';
+import whirlwind from '../../assets/ui/skills/whirlwind.png';
+import slam from '../../assets/ui/skills/seismic-slam.png';
+import multishot from '../../assets/ui/skills/multishot.png';
+import rain from '../../assets/ui/skills/arrow-rain.png';
+import nova from '../../assets/ui/skills/frost-nova.png';
+import meteor from '../../assets/ui/skills/arcane-meteor.png';
+import type { ItemKind } from '../data/equipment';
+import type { AdvancedSkillId } from '../data/advancedSkills';
+export const ITEM_ICONS: Record<ItemKind, string> = { sword, bow, staff, armor };
+export const SKILL_ICONS: Record<AdvancedSkillId, string> = { whirlwind, 'seismic-slam': slam, multishot, 'arrow-rain': rain, 'frost-nova': nova, 'arcane-meteor': meteor };

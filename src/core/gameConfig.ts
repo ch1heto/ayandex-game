@@ -4,12 +4,13 @@ import { BootScene } from '../scenes/BootScene';
 import { PreloadScene } from '../scenes/PreloadScene';
 import { MainMenuScene } from '../scenes/MainMenuScene';
 import { GameScene } from '../scenes/GameScene';
+import { DungeonScene } from '../scenes/DungeonScene';
 import { UIScene } from '../scenes/UIScene';
 import { CharacterSelectScene } from '../scenes/CharacterSelectScene';
 
 const initialViewportWidth = Math.max(640, window.innerWidth);
 const initialViewportHeight = Math.max(360, window.innerHeight);
-export const baseScenes = [BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, UIScene];
+export const baseScenes = [BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, DungeonScene, UIScene];
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
