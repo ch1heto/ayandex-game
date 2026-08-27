@@ -12,13 +12,15 @@
 .forge-shop-content { min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:2px 6px 8px; position:relative; }
 .forge-shop-hint { color:#b7bba4; font-size:14px; margin:4px 0 14px; }
 .forge-shop-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:start; }
-.forge-shop-card { padding:13px; border:2px solid var(--rarity,#846e4c); background:#101d18; min-width:0; }
+ .shop-comparison { margin-top:8px; font-size:13px; color:#c8b77f; }
+.shop-comparison summary { cursor:pointer; }
+.forge-shop-card .item-stat { font-size:14px; }
+.forge-shop-card { padding:11px; border:2px solid var(--rarity,#846e4c); background:#101d18; min-width:0; }
 .forge-shop-card h3 { margin:4px 0 8px; font-size:17px; line-height:1.2; }
 .forge-shop-card h4 { font-size:12px; color:#c8b77f; margin:12px 0 5px; letter-spacing:.05em; }
 .forge-shop-card > small { display:block; color:#aeb8aa; font-size:13px; }
 .forge-shop-card .equipment-icon { width:44px; height:44px; image-rendering:pixelated; }
 .forge-shop-card .equipment-action { width:100%; font-size:15px; }
-.forge-shop-card.potion-card:nth-child(2) { grid-column:span 2; }
 .forge-shop-card .potion-glyph { display:inline-block; margin:4px 8px 4px 0; }
 .forge-shop-message { min-height:18px; margin:10px 4px 0; color:#edcd91; flex-shrink:0; }
 .forge-shop-confirm { position:sticky; top:0; z-index:2; padding:18px; border:3px solid #cba25e; background:#29261b; box-shadow:0 -8px 30px #000b; }
@@ -26,12 +28,8 @@
 .forge-shop-card .unaffordable { color:#d5a69a; border-color:#846158; }
 .item-affix { display:block; line-height:1.35; color:#b9abc9; margin:3px 0; }
 .item-stat { color:#e5dfc7; }
-.hud-dodge { align-self:end; width:94px; padding:7px 4px; border:2px solid #82734f; box-shadow:inset 0 0 0 1px #141d17; background:#1d3028; color:#d5d5a3; font:11px Pixellari,monospace; text-align:center; }
-.hud-dodge.cooldown { color:#a5a698; background:#252c29; }
 @media (max-width:760px),(max-height:500px) {
  .forge-shop-overlay { padding:6px; } .forge-shop-panel { padding:10px; max-height:100%; }
  .forge-shop-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
- .forge-shop-card.potion-card:nth-child(2) { grid-column:span 1; }
  .forge-shop-panel h2 { font-size:19px; } .forge-shop-card { padding:8px; }
- .hud-dodge { width:73px; font-size:9px; }
 }

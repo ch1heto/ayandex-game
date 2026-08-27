@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const qa = file => require(path.join(process.env.ASHVALE_QA_DIR || path.join(__dirname, '../artifacts/content-qa/node'), file));
 const { GameProgressService } = qa('systems/save/GameProgressService.js');
-const { rollItem, equipmentBonuses, ITEM_RARITIES, EQUIPMENT_CONFIG } = qa('data/equipment.js');
+const { rollItem, equipmentBonuses, ITEM_RARITIES, EQUIPMENT_CONFIG, EQUIPMENT_SLOTS, ITEM_BUDGETS, ITEM_DEFINITIONS } = qa('data/equipment.js');
 const { validateItem } = qa('systems/equipment/itemValidation.js');
 const { ADVANCED_SKILLS } = qa('data/advancedSkills.js');
 const { SKILL_1_CONFIGS } = qa('data/skills.js');
@@ -16,16 +16,16 @@ let storage = new Map();
 global.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) };
 function fresh() { storage = new Map(); const service = new GameProgressService(); service.load(); return service; }
 const sword = { id:'test-sword-1', kind:'sword', rarity:'rare', itemLevel:3, stats:{ damage:8,maxHealth:0,maxMana:10,cooldownReduction:.06,movementSpeed:0 } };
-const armor = { id:'test-armor-1', kind:'armor', rarity:'epic', itemLevel:3, stats:{ damage:0,maxHealth:40,maxMana:10,cooldownReduction:0,movementSpeed:.04 } };
+const armor = { id:'test-armor-1', kind:'chest', rarity:'epic', itemLevel:3, stats:{ damage:0,maxHealth:40,maxMana:10,cooldownReduction:0,movementSpeed:.04 } };
 test('new save: empty inventory, equipment and 3+3 potions', () => {
-  const s=fresh().snapshot; assert.equal(s.version,4); assert.deepEqual(s.inventory,[]); assert.deepEqual(s.equipment,{});
+  const s=fresh().snapshot; assert.equal(s.version,5); assert.deepEqual(s.inventory,[]); assert.deepEqual(s.equipment,{});
   assert.equal(s.player.healthPotions,3); assert.equal(s.player.manaPotions,3); assert.equal(s.milestones.bossFirstKill,false);
 });
-for (const version of [1,2,3]) test('v'+version+' migration preserves progression, buildings and selection', () => {
+for (const version of [1,2,3,4]) test('v'+version+' migration preserves progression, buildings and selection', () => {
   storage = new Map([['ashvale-progress-v'+version,JSON.stringify({ version, coins:87, buildings:{forge:true,infirmary:true}, player:{level:4,xp:73,healthPotions:2,manaPotions:1,slimeKills:12,spiderKills:8}, selectedClass:'mage',currentSkin:'necromancer' })]]);
   const s=new GameProgressService().load(); assert.equal(s.coins,87); assert.deepEqual(s.buildings,{forge:true,infirmary:true});
   assert.deepEqual(s.player,{level:4,xp:73,healthPotions:2,manaPotions:1,slimeKills:12,spiderKills:8});
-  assert.deepEqual(s.selection,{classId:'mage',skinId:'necromancer'}); assert.deepEqual(s.inventory,[]); assert(storage.has('ashvale-progress-v4'));
+  assert.deepEqual(s.selection,{classId:'mage',skinId:'necromancer'}); assert.deepEqual(s.inventory,[]); assert(storage.has('ashvale-progress-v5'));
   assert(storage.has('ashvale-progress-v'+version));
 });
 test('equip restrictions, replacement and 100 equip/unequip cycles do not stack', () => {
@@ -43,7 +43,7 @@ test('inventory full refuses pickup/unequip without losing items; swapping still
   assert.equal(s.equip('bag-0','warrior'),'ok'); assert.equal(s.snapshot.inventory.length,24); assert(s.snapshot.inventory.some(i=>i.id===sword.id));
 });
 test('stable UUID, rolled stats and first-kill flag survive save/load unchanged', () => {
-  const s=fresh(); const item=rollItem(8,'boss'); s.pickup(item); const kindClass={sword:'warrior',bow:'archer',staff:'mage',armor:'mage'}[item.kind];
+  const s=fresh(); const item=rollItem(8,'boss'); s.pickup(item); const kindClass=({sword:'warrior',bow:'archer',staff:'mage'}[item.kind] ?? 'mage');
   s.equip(item.id,kindClass); assert(s.milestone('bossFirstKill')); assert.equal(s.milestone('bossFirstKill'),false); s.select('mage','necromancer');
   const loaded=new GameProgressService().load(); assert.deepEqual(loaded,s.snapshot); assert.equal(Object.values(loaded.equipment)[0].id,item.id); assert.deepEqual(Object.values(loaded.equipment)[0].stats,item.stats);
 });
@@ -163,8 +163,9 @@ test('60000 smart loot rolls: class relevance, rarity, level weights, affixes, n
       for(const affix of item.affixes) assert(affix.value>0&&affix.value<=AFFIXES[affix.id].cap);
       for(const value of Object.values(itemStats(item))) assert(Number.isFinite(value)&&value>=0);
       const rarityIndex=ITEM_RARITIES.indexOf(item.rarity), power=EQUIPMENT_CONFIG.rarityMultipliers[rarityIndex];
-      const expected=(item.kind==='armor'?8+item.itemLevel*3:2+item.itemLevel)*power;
-      const actual=item.stats[item.kind==='armor'?'maxHealth':'damage']; assert(actual>=Math.round(expected*.9)&&actual<=Math.round(expected*1.1));
+      for(const [stat,[base,perLevel]] of Object.entries(ITEM_BUDGETS[item.kind].base)) {
+        const expected=(base+perLevel*item.itemLevel)*power,actual=item.stats[stat];assert(actual>=Math.round(expected*.9)&&actual<=Math.round(expected*1.1));
+      }
     }
     assert(Math.abs(relevant/20000-.75)<.02);
     ITEM_RARITIES.forEach((r,i)=>assert(Math.abs(counts[r]/20000-EQUIPMENT_CONFIG.rarityWeights.normal[i]/100)<.02));
@@ -194,33 +195,50 @@ test('potion drops: 5% / 20% / guaranteed boss, balanced health/mana; normal equ
   let count=0;for(let i=0;i<20000;i++)count+=rollEquipmentDrops(5,'normal',rng,{classId:'mage'}).length;
   assert(Math.abs(count/20000-.12)<.015);
 });
-test('weak-slot bias is mild, and useful drops still include non-upgrades',()=>{
-  const rng=seeded(87), equipment={weapon:{...sword,itemLevel:30,rarity:'legendary'}};
-  let armorCount=0, nonUpgrades=0;
-  for(let i=0;i<6000;i++){
-    const item=rollItem(10,'normal',rng,{classId:'warrior',equipment,forceRelevant:true});
-    armorCount+=Number(item.kind==='armor'); nonUpgrades+=Number(item.kind==='sword'&&item.itemLevel<30);
+test('empty and weak slots receive noticeable nonabsolute bias; weapon drops stay below 45%',()=>{
+  const sample=(equipment,seed)=>{
+    const rng=seeded(seed), counts={};let nonUpgrades=0;
+    for(let i=0;i<20000;i++){
+      const item=rollItem(10,'normal',rng,{classId:'warrior',equipment});
+      counts[item.kind]=(counts[item.kind]||0)+1;
+      nonUpgrades+=Number(item.kind==='sword'&&item.itemLevel<30);
+    }
+    return {counts,nonUpgrades};
+  };
+  const gear=Object.fromEntries(EQUIPMENT_SLOTS.map(slot=>[slot,rollItem(30,'boss',seeded(87),{kind:slot==='weapon'?'sword':slot.startsWith('ring')?'ring':slot,rarity:'legendary'})]));
+  const full=sample(gear,31),emptyGear={...gear};delete emptyGear.helmet;delete emptyGear.boots;
+  const empty=sample(emptyGear,31);
+  const weakGear={...gear,helmet:{...gear.helmet,itemLevel:1,rarity:'common'}};
+  const weak=sample(weakGear,31);
+  for(const kind of ['helmet','boots']) assert(empty.counts[kind]>full.counts[kind]*1.5);
+  assert(weak.counts.helmet>full.counts.helmet*1.5);
+  assert(empty.nonUpgrades>400);
+  for(const counts of [full.counts,empty.counts,weak.counts]){
+    assert((counts.sword+counts.bow+counts.staff)/20000<.45);
+    for(const kind of ['helmet','chest','legs','boots','amulet','ring']) assert(counts[kind]>600);
   }
-  assert(armorCount/6000>.6&&armorCount/6000<.7); assert(nonUpgrades>1500);
+  console.log('SLOT_STATS '+JSON.stringify({full,empty,weak}));
 });
-test('2000 comparisons match actual equip bonuses including affixes, caps and class restrictions',()=>{
+
+test('2000 comparisons match actual equip bonuses for every slot, rings, caps and class restrictions',()=>{
   const rng=seeded(111);
   for(let i=0;i<2000;i++){
     const classId=['warrior','archer','mage'][i%3];
-    const equipment={weapon:rollItem(10,'boss',rng,{kind:CLASS_WEAPONS[classId]}),armor:rollItem(10,'boss',rng,{kind:'armor'})};
-    const item=rollItem(10,'normal',rng,{classId});
-    const before=equipmentBonuses(equipment,classId), after=equipmentBonuses({...equipment,[item.kind==='armor'?'armor':'weapon']:item},classId);
-    const delta=equipmentComparison(item,equipment,classId);
+    const equipment=Object.fromEntries(EQUIPMENT_SLOTS.map(slot=>[slot,rollItem(10,'boss',rng,{kind:slot==='weapon'?CLASS_WEAPONS[classId]:slot.startsWith('ring')?'ring':slot})]));
+    const item=rollItem(10,'normal',rng,{classId});const slot=item.kind==='ring'?(i%2?'ring1':'ring2'):ITEM_DEFINITIONS[item.kind].slot;
+    const before=equipmentBonuses(equipment,classId), after=isRelevant(item,classId)?equipmentBonuses({...equipment,[slot]:item},classId):before;
+    const delta=equipmentComparison(item,equipment,classId,slot);
     for(const key of Object.keys(EMPTY_STATS)) assert(Math.abs(after[key]-before[key]-delta[key])<.00001);
+    if(item.kind==='ring') assert.deepEqual(equipmentComparison(item,equipment,classId),EMPTY_STATS);
   }
   const capped={...sword,stats:{...EMPTY_STATS,cooldownReduction:.2},affixes:[{id:'focused',value:.06}]};
   assert.equal(equipmentBonuses({weapon:capped},'warrior').cooldownReduction,.2);
   assert.equal(equipmentComparison(capped,{weapon:capped},'warrior').cooldownReduction,0);
 });
 function forge() { const s=fresh(); s.addCoins(100000); assert(s.restoreBuilding('forge',12)); return s; }
-test('Forge is gated; three class-relevant offers stable across reopen/reload and sold-out state',()=>{
+test('Forge is gated; six class-relevant offers stable across reopen/reload and sold-out state',()=>{
   let s=fresh(); assert.deepEqual(s.ensureShop('mage'),[]); assert.equal(s.buyPotion('health','locked'),'locked');
-  s=forge(); const offers=s.ensureShop('mage'); assert.equal(offers.length,3); assert.equal(offers[0].kind,'staff'); assert.equal(offers[1].kind,'armor');
+  s=forge(); const offers=s.ensureShop('mage'); assert.equal(offers.length,6); assert.equal(offers[0].kind,'staff'); assert.equal(offers[1].kind,'chest');
   assert(offers.every(item=>isRelevant(item,'mage'))); assert.deepEqual(s.ensureShop('mage'),offers);
   s=new GameProgressService(); s.load(); assert.deepEqual(s.ensureShop('mage'),offers);
   for(const item of offers){
@@ -262,8 +280,8 @@ test('level-up refreshes stock while selection, rolled affixes and inventory rem
 });
 test('legacy v3 items are migrated without reroll; malformed and duplicated affixes are sanitized',()=>{
   fresh(); storage.set('ashvale-progress-v3',JSON.stringify({version:3,coins:75,inventory:[sword],equipment:{armor},selection:{classId:'mage',skinId:'little-mage'},milestones:{bossFirstKill:true}}));
-  const s=new GameProgressService().load(); assert.equal(s.version,4); assert.equal(s.coins,75);
-  assert.equal(s.inventory[0].stats.damage,8); assert.deepEqual(s.inventory[0].affixes,[]); assert.equal(s.equipment.armor.stats.maxHealth,40);
+  const s=new GameProgressService().load(); assert.equal(s.version,5); assert.equal(s.coins,75);
+  assert.equal(s.inventory[0].stats.damage,8); assert.deepEqual(s.inventory[0].affixes,[]); assert.equal(s.equipment.chest.stats.maxHealth,40);
   assert.equal(s.milestones.bossFirstKill,true); assert.equal(s.selection.skinId,'little-mage');
   const item=validateItem({...sword,affixes:[{id:'focused',value:99},{id:'focused',value:.01},{id:'unknown',value:1},{id:'sharp',value:-2}]});
   assert.deepEqual(item.affixes,[{id:'focused',value:.06}]);
@@ -370,5 +388,150 @@ test('summon lifecycle and Volatile damage with stubbed rendering/physics (not b
     function combatTargetsForScene(){return qa('combat/CombatTargets.js').combatTargets(scene);}
   } finally { Module._load=originalLoad; }
 });
+
+
+test('Equipment v2: 100 full-set cycles, both rings, explicit swaps, full bag and every class/kind',()=>{
+  const rng=seeded(720);
+  for(const classId of ['warrior','archer','mage']) {
+    const s=forge();
+    const equipped=EQUIPMENT_SLOTS.map(slot=>rollItem(9,'boss',rng,{kind:slot==='weapon'?CLASS_WEAPONS[classId]:slot.startsWith('ring')?'ring':slot}));
+    equipped.forEach(item=>assert(s.pickup(item)));
+    for(let cycle=0;cycle<100;cycle++){
+      equipped.forEach(item=>assert.equal(s.equip(item.id,classId),'ok'));
+      const bonus=equipmentBonuses(s.snapshot.equipment,classId);
+      assert(bonus.cooldownReduction<=.2&&bonus.movementSpeed<=.1&&bonus.manaRegen<=3);
+      assert.equal(new Set(Object.values(s.snapshot.equipment).map(i=>i.id)).size,8);
+      assert.deepEqual(new GameProgressService().load(),s.snapshot);
+      for(const slot of EQUIPMENT_SLOTS) assert(s.unequip(slot));
+      assert.deepEqual(equipmentBonuses(s.snapshot.equipment,classId),EMPTY_STATS);
+    }
+    equipped.forEach(item=>assert.equal(s.equip(item.id,classId),'ok'));
+    const ring=rollItem(9,'boss',rng,{kind:'ring'}); s.pickup(ring);
+    const before=s.snapshot;
+    assert.equal(s.equip(ring.id,classId),'choose-slot');assert.deepEqual(s.snapshot,before);
+    assert.equal(s.equip(ring.id,classId,'weapon'),'choose-slot');
+    for(let i=s.snapshot.inventory.length;i<24;i++) assert(s.pickup({...ring,id:'ring-full-'+i}));
+    assert(!s.unequip('ring2'));assert.equal(s.equip(ring.id,classId,'ring2'),'ok');
+    assert.equal(s.snapshot.inventory.length,24);assert.equal(s.snapshot.equipment.ring2.id,ring.id);
+    assert.equal(s.snapshot.equipment.ring1.id,before.equipment.ring1.id);
+    assert.equal(s.sellItem(ring.id,true),'missing');
+    for(const item of s.snapshot.inventory) {
+      const coins=s.snapshot.coins;assert.equal(s.sellItem(item.id),'confirm');
+      assert.equal(s.sellItem(item.id,true),'ok');assert.equal(s.snapshot.coins,coins+sellPrice(item));
+      assert.equal(s.sellItem(item.id,true),'missing');
+    }
+    for(const slot of EQUIPMENT_SLOTS) {
+      const item=s.snapshot.equipment[slot]; assert(s.unequip(slot)); const coins=s.snapshot.coins;
+      assert.equal(s.sellItem(item.id),'confirm');assert.equal(s.sellItem(item.id,true),'ok');assert.equal(s.snapshot.coins,coins+sellPrice(item));
+    }
+  }
+});
+test('v4 migration preserves old armor UUID/rolls/affixes, all progression and partial/sold-out shop stock',()=>{
+  const oldArmor={...armor,kind:'armor',stats:{...armor.stats,manaRegen:.4},affixes:[{id:'vital',value:13},{id:'restoring',value:.8}]};
+  const oldStock=[{...sword,id:'old-stock-weapon'}, {...oldArmor,id:'old-stock-armor'}];
+  const old={version:4,coins:93,buildings:{forge:true,infirmary:true},player:{level:7,xp:31,healthPotions:9,manaPotions:8,slimeKills:6,spiderKills:5},
+    equipment:{weapon:{...sword,id:'old-equipped-weapon'},armor:oldArmor},inventory:[{...oldArmor,id:'old-bag-armor'}],
+    selection:{classId:'archer',skinId:'archer-hero'},milestones:{eliteKilled:true,dungeonEntered:true,bossFirstKill:true},
+    shop:{generation:12,stocks:{warrior:oldStock,mage:[]},receipts:['old-potion']}};
+  storage=new Map([['ashvale-progress-v4',JSON.stringify(old)]]);
+  const s=new GameProgressService();const loaded=s.load();
+  assert.equal(loaded.version,5);assert.equal(loaded.equipment.chest.kind,'chest');
+  assert.deepEqual(loaded.equipment.chest.stats,{...EMPTY_STATS,...oldArmor.stats});
+  assert.deepEqual(loaded.equipment.chest.affixes,oldArmor.affixes);assert.equal(loaded.equipment.chest.id,oldArmor.id);
+  assert.equal(loaded.equipment.weapon.id,old.equipment.weapon.id);
+  assert.equal(loaded.inventory[0].kind,'chest');assert.equal(loaded.inventory[0].id,'old-bag-armor');
+  assert.deepEqual(Object.keys(loaded.equipment).sort(),['chest','weapon']);
+  for(const key of ['coins','buildings','player','selection','milestones']) assert.deepEqual(loaded[key],old[key]);
+  assert.equal(loaded.shop.generation,12);assert.deepEqual(loaded.shop.receipts,['old-potion']);
+  assert.deepEqual(s.ensureShop('warrior'),oldStock.map(validateItem)); assert.deepEqual(s.ensureShop('mage'),[]);
+  assert.deepEqual(new GameProgressService().load(),s.snapshot);
+  s.refreshShop();assert.equal(s.ensureShop('warrior').length,6);
+});
+test('200 refreshes cover all universal categories and never create a weapon-heavy shop',()=>{
+  const s=forge(),kinds=new Set();
+  for(let i=0;i<200;i++){
+    s.refreshShop();const offers=s.ensureShop('archer');assert.equal(offers.length,6);
+    offers.forEach(item=>kinds.add(item.kind));assert(offers.every(item=>isRelevant(item,'archer')));
+    assert(offers.filter(item=>item.kind==='bow').length<=2); assert.equal(offers[1].kind,'chest');assert.equal(offers[3].kind,'boots');
+  }
+  for(const kind of ['bow','helmet','chest','legs','boots','amulet','ring']) assert(kinds.has(kind));
+});
+const { broodmotherMotion }=qa('entities/enemies/broodmotherMotion.js');
+test('boss visual state motion stays bounded across 20000 frames; attack/recovery/cast/death poses',()=>{
+  const base={time:0,action:'idle',actionUntil:0,phase:1,specialUntil:0,recoveryUntil:0,venomAt:-Infinity};
+  for(let i=0;i<20000;i++){
+    const m=broodmotherMotion({...base,time:i*16,phase:1+i%3,action:['idle','lunge-windup','lunge','venom-windup','zone-windup'][i%5],actionUntil:i*16+300});
+    assert(Math.abs(m.bob)<=1);assert(m.scaleX>=.97&&m.scaleX<=1.04);assert(m.scaleY>=.96&&m.scaleY<=1.02);assert(Math.abs(m.angle)<=.35);assert(m.glow<.86);
+  }
+  assert.equal(broodmotherMotion({...base,action:'lunge'}).pose,'attack');
+  assert.equal(broodmotherMotion({...base,recoveryUntil:100}).pose,'attack');
+  assert.equal(broodmotherMotion({...base,action:'zone-windup'}).pose,'phase');
+  assert.equal(broodmotherMotion({...base,specialUntil:100}).pose,'phase');
+  assert.equal(broodmotherMotion({...base,action:'venom-windup'}).pose,'idle');
+  assert.equal(broodmotherMotion({...base,time:600,deathAt:0}).alpha,0);
+});
+
+
+test('real PlayerCharacter Dodge chooses Archer walk/flip; Warrior/Mage idle, speed, body and cooldown preserved (stub graphics)',()=>{
+  const Module=require('node:module'),originalLoad=Module._load;
+  class Vector2 { constructor(x,y){this.x=x;this.y=y;} lengthSq(){return this.x*this.x+this.y*this.y;} set(x,y){this.x=x;this.y=y;return this;} normalize(){const n=Math.hypot(this.x,this.y);if(n){this.x/=n;this.y/=n;}return this;} scale(v){this.x*=v;this.y*=v;return this;} }
+  Module._load=function(request,parent,isMain){
+    if(request==='phaser') return {Math:{Vector2}};
+    if(/\.(png|svg)$/.test(request)) return request;
+    return originalLoad.apply(this,arguments);
+  };
+  try {
+    const {PlayerCharacter}=qa('entities/player/PlayerCharacter.js');
+    for(const [classId,skinId] of [['archer','archer-hero'],['warrior','sushi-warrior'],['mage','little-mage']]) {
+      for(const [mx,my,ax,ay,left] of [[-1,0,1,0,true],[1,0,-1,0,false],[-1,-1,1,0,true],[0,-1,0,0,false],[0,0,-1,0,true]]) {
+        const p=Object.create(PlayerCharacter.prototype);
+        const visual={originY:0,stop(){this.played=undefined;return this;},setScale(){return this;},clearTint(){return this;},setOrigin(x,y){this.originY=y;return this;},setFlipX(v){this.flipX=v;return this;},setTexture(key){this.texture=key;return this;},play(key){this.played=key;return this;}};
+        const body={setVelocity(x,y){this.x=x;this.y=y;return this;},setSize(w,h){this.w=w;this.h=h;return this;},setOffset(){return this;}};
+        Object.assign(p,{visual,body,root:{active:true},scene:{time:{now:1000}},health:100,classId,skinId,knockbackUntil:0,dodgeState:new DodgeState(),facing:'down',horizontalFacing:'right',aimX:1,aimY:0});
+        assert(p.dodge(mx,my,ax,ay)); assert(Math.abs(Math.hypot(body.x,body.y)-360)<.0001);
+        assert.equal(body.w,18);assert.equal(body.h,13);assert.equal(p.dodgeCooldown,1400);
+        if(classId==='archer') {assert.equal(visual.played,'character-archer-hero-walk-'+(left?'left':'right'));assert.equal(visual.flipX,left);}
+        else {assert.equal(visual.played,undefined);assert.equal(visual.texture,'character-'+skinId+'-idle');}
+        assert(!p.dodge(mx,my,ax,ay));p.scene.time.now=1180;assert(!p.dodgeState.invulnerable(1180));assert(p.dodging);
+        p.scene.time.now=1200;assert(!p.dodging);assert.equal(p.dodgeCooldown,1200);
+      }
+    }
+  } finally {Module._load=originalLoad;}
+});
+
+
+test('boss renderer reuses four display objects, switches both textures, and cleans up (stub graphics)',()=>{
+  const Module=require('node:module'),originalLoad=Module._load,objects=new Set();
+  Module._load=function(request,parent,isMain){
+    if(request==='phaser') return {Textures:{FilterMode:{NEAREST:0}},BlendModes:{ADD:1}};
+    if(/\.png$/.test(request)) return request;
+    return originalLoad.apply(this,arguments);
+  };
+  try{
+    const {BroodmotherVisual}=qa('entities/enemies/BroodmotherVisual.js');
+    const object=()=>{const o={active:true,destroy(){assert(this.active);this.active=false;objects.delete(this);}};
+      for(const method of ['setOrigin','setName','setBlendMode','setPosition','setScale','setAngle','setFlipX','setDepth','setAlpha','clear','fillStyle','fillRect','setTexture']) o[method]=function(...args){this[method+'Args']=args;return this;};
+      objects.add(o);return o;};
+    let textures=0;const scene={time:{now:0},textures:{get:()=>({setFilter:()=>textures++})},add:{image:object,graphics:object}};
+    const visual=new BroodmotherVisual(scene);assert.equal(objects.size,4);assert.equal(textures,6);
+    for(let i=0;i<20000;i++) visual.update(i*16,100,200,i%2?'lunge':'idle',i*16+50,1+i%3,true,false);
+    assert.equal(objects.size,4);assert.equal(textures,6);
+    visual.update(400000,100,200,'zone-windup',400650,3,true,false);
+    visual.update(400200,100,200,'zone-windup',400650,3,true,false);
+    assert.equal(visual.body.setTextureArgs[0],'broodmother-phase');
+    assert.equal(visual.glow.setTextureArgs[0],'broodmother-phase-glow');
+    visual.update(400300,100,200,'idle',0,3,false,false);
+    visual.update(400900,100,200,'idle',0,3,false,false);assert.equal(visual.body.setAlphaArgs[0],0);
+    visual.destroy();assert.equal(objects.size,0);
+  }finally{Module._load=originalLoad;}
+});
+// Offline preview input is the actual production motion function, not hand-authored frame transforms.
+const motionFrames=[];
+for(let time=0;time<5000;time+=50){
+  const action=time<1000?'idle':time<1700?'lunge-windup':time<2150?'lunge':time<2800?'idle':time<3450?'venom-windup':time<3900?'idle':time<4550?'zone-windup':'idle';
+  motionFrames.push({...broodmotherMotion({time,action,actionUntil:1700,phase:time<2800?1:3,specialUntil:650,recoveryUntil:time>=2150?2330:0,venomAt:time>=3450?3450:-Infinity}),label:action});
+}
+const motionDir=path.join(__dirname,'../artifacts/current-pass/boss');
+fs.mkdirSync(motionDir,{recursive:true});fs.writeFileSync(path.join(motionDir,'motion.json'),JSON.stringify(motionFrames));
 
 console.log(checks+' data/config/map/geometry checks passed. This is not browser runtime or visual QA.');

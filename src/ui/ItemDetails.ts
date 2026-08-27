@@ -1,4 +1,4 @@
-import { AFFIXES, EMPTY_STATS, equipmentComparison, itemStats, isRelevant, type ItemInstance, type ItemStats, type EquipmentSlot } from '../data/equipment';
+import { AFFIXES, EMPTY_STATS, equipmentComparison, itemStats, isRelevant, resolveEquipSlot, type ItemInstance, type ItemStats, type EquipmentSlot } from '../data/equipment';
 import type { PlayerClassId } from '../entities/player/playerTypes';
 import { t } from '../i18n/LocalizationService';
 const keys = Object.keys(EMPTY_STATS) as (keyof ItemStats)[];
@@ -15,10 +15,11 @@ export function appendItemStats(host: HTMLElement, item: ItemInstance): void {
   if (item.affixes?.length) row(host, 'h4', t('equipment.affixes'));
   for (const affix of item.affixes ?? []) row(host, 'small', t(`affix.${affix.id}`) + ': ' + t(`stat.${AFFIXES[affix.id].stat}`) + ' +' + statValue(AFFIXES[affix.id].stat, affix.value), 'item-affix');
 }
-export function appendComparison(host: HTMLElement, item: ItemInstance, equipment: Partial<Record<EquipmentSlot, ItemInstance>>, classId: PlayerClassId): void {
+export function appendComparison(host: HTMLElement, item: ItemInstance, equipment: Partial<Record<EquipmentSlot, ItemInstance>>, classId: PlayerClassId, targetSlot?: EquipmentSlot): void {
   row(host, 'h4', t('equipment.onEquip'));
   if (!isRelevant(item, classId)) { row(host, 'small', t('equipment.wrongClass')); return; }
-  const delta = equipmentComparison(item, equipment, classId);
+  if (!resolveEquipSlot(item.kind, equipment, targetSlot)) { row(host, 'small', t('equipment.chooseRing')); return; }
+  const delta = equipmentComparison(item, equipment, classId, targetSlot);
   let changed = false;
   for (const key of keys) if (delta[key]) {
     changed = true;

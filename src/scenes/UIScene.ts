@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import type { PlayerCharacter } from '../entities/player/PlayerCharacter';
 import { EquipmentPanels } from '../ui/EquipmentPanels';
-import { SKILL_ICONS } from '../ui/itemIcons';
+import { DODGE_ICON, SKILL_ICONS } from '../ui/itemIcons';
+import { DODGE_CONFIG } from '../data/dodge';
 import { ADVANCED_SKILLS } from '../data/advancedSkills';
 import { gameProgressService } from '../systems/save/GameProgressService';
 import type { HudNotification } from '../systems/notifications/notifications';
@@ -30,7 +31,7 @@ export class UIScene extends Phaser.Scene {
   private classText!: HTMLDivElement;
   private interactionNotice!: HTMLDivElement;
   private interactionText!: HTMLSpanElement;
-  private dodgeIndicator!: HTMLDivElement;
+  private dodgeSlot!: HotbarSlot;
   private skillSlot!: HotbarSlot;
   private healthPotion!: HotbarSlot;
   private manaPotion!: HotbarSlot;
@@ -101,7 +102,9 @@ export class UIScene extends Phaser.Scene {
     this.healthPotion = this.createHotbarSlot('Q', 'health-potion');
     this.manaPotion = this.createHotbarSlot('E', 'mana-potion');
     hotbar.append(this.healthPotion.root, this.manaPotion.root);
-    this.dodgeIndicator = element('div', 'hud-dodge'); hotbar.append(this.dodgeIndicator);
+    this.dodgeSlot = this.createHotbarSlot('SPACE', 'dodge');
+    (this.dodgeSlot.icon as HTMLImageElement).src = DODGE_ICON;
+    this.dodgeSlot.root.setAttribute('aria-label', t('dodge.name')); hotbar.append(this.dodgeSlot.root);
 
     const utility = element('div', 'hud-utility');
     const inventoryButton = this.utilityButton('I', t('hud.inventory'), () => this.togglePanel('inventory'));
@@ -148,12 +151,14 @@ export class UIScene extends Phaser.Scene {
 
   private refreshHotbar(classId: PlayerClassId): void {
     const dodge = numberValue(this.registry.get('dodgeCooldownMs'), 0);
-    this.dodgeIndicator.textContent = 'SPACE · ' + (dodge > 0 ? (dodge / 1000).toFixed(1) : t('dodge.ready'));
-    this.dodgeIndicator.title = t('dodge.name'); this.dodgeIndicator.classList.toggle('cooldown', dodge > 0);
+    this.updateCooldown(this.dodgeSlot, dodge, DODGE_CONFIG.cooldownMs);
+    this.dodgeSlot.root.classList.toggle('dodge-ready', dodge <= 0);
+    this.dodgeSlot.root.title = t('dodge.name') + ' · ' + (dodge > 0 ? (dodge / 1000).toFixed(1) : t('dodge.ready'));
     const cooldown = Math.max(0, numberValue(this.registry.get('skill1CooldownMs'), 0));
     const total = Math.max(1, numberValue(this.registry.get('skill1CooldownTotalMs'), 5_000));
     const icon = this.skillSlot.icon as HTMLImageElement;
-    icon.src = classId === 'warrior' ? heavySlashIconUrl : classId === 'archer' ? piercingShotIconUrl : blinkIconUrl;
+    const firstIcon = classId === 'warrior' ? heavySlashIconUrl : classId === 'archer' ? piercingShotIconUrl : blinkIconUrl;
+    if (!icon.src.endsWith(firstIcon)) icon.src = firstIcon;
     icon.title = t(`skill.${classId}` as TranslationKey);
     this.updateCooldown(this.skillSlot, cooldown, total); this.skillSlot.count.textContent = '0 MP';
     const ready = cooldown <= 0;
@@ -239,10 +244,10 @@ export class UIScene extends Phaser.Scene {
 
   private updateBar(bar: BarParts, value: number, max: number): void { bar.fill.style.width = `${Phaser.Math.Clamp(value / max, 0, 1) * 100}%`; bar.value.textContent = `${Math.floor(value)} / ${Math.floor(max)}`; }
 
-  private createHotbarSlot(key: string, kind: 'skill' | 'health-potion' | 'mana-potion'): HotbarSlot {
+  private createHotbarSlot(key: string, kind: 'skill' | 'dodge' | 'health-potion' | 'mana-potion'): HotbarSlot {
     const root = element('div', `hud-hotbar-slot slot-${kind}`); const iconWrap = element('div', 'hotbar-icon');
-    const icon = kind === 'skill' ? document.createElement('img') : element('span', 'potion-glyph');
-    if (kind !== 'skill') icon.setAttribute('title', t(kind === 'health-potion' ? 'potion.health' : 'potion.mana'));
+    const icon = kind === 'skill' || kind === 'dodge' ? document.createElement('img') : element('span', 'potion-glyph');
+    if (kind === 'health-potion' || kind === 'mana-potion') icon.setAttribute('title', t(kind === 'health-potion' ? 'potion.health' : 'potion.mana'));
     const keyNode = document.createElement('kbd'); keyNode.textContent = key; const count = element('span', 'hotbar-count'); const cooldown = element('span', 'hotbar-cooldown');
     iconWrap.append(icon, keyNode, count, cooldown); root.append(iconWrap); return { root, icon, count, cooldown };
   }

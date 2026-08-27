@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import { combatTargets, TargetSelector } from '../../combat/CombatTargets';
+import { BroodmotherVisual } from './BroodmotherVisual';
+import type { BroodmotherAction } from './broodmotherMotion';
 import { EmberSpider } from './EmberSpider';
 import { EmberSpiderAnimation } from './emberSpiderAssets';
 import type { PlayerCharacter } from '../player/PlayerCharacter';
 import { DUNGEON_CONFIG } from '../../data/dungeon';
 import { PixelSkillVfx, line, pixel } from '../../systems/skills/PixelSkillVfx';
 const C = DUNGEON_CONFIG.boss;
-type Action = 'idle' | 'lunge-windup' | 'lunge' | 'venom-windup' | 'zone-windup';
+type Action = BroodmotherAction;
 type Zone = { root: Phaser.GameObjects.Zone; art: Phaser.GameObjects.Graphics; born: number; nextHit: number; x: number; y: number };
 export class AshenBroodmother extends EmberSpider {
   private readonly lungeTargets: TargetSelector;
@@ -17,7 +19,7 @@ export class AshenBroodmother extends EmberSpider {
   private nextAttack = 0;
   private attackIndex = 0;
   private aim = new Phaser.Math.Vector2(1, 0);
-  private readonly overlay: Phaser.GameObjects.Graphics;
+  private readonly artwork: BroodmotherVisual;
   private readonly telegraph: Phaser.GameObjects.Graphics;
   private readonly bolts: Phaser.Physics.Arcade.Group;
   private readonly collisions: Phaser.Physics.Arcade.Collider[] = [];
@@ -33,9 +35,10 @@ export class AshenBroodmother extends EmberSpider {
   ) {
     super(bossScene, x, y, hero, onDeath, onEngage, undefined, C.maxHealth);
     this.lungeTargets = new TargetSelector(combatTargets(bossScene), 3);
-    this.visual.setScale(C.scale); this.visual.setName('ashen-broodmother');
+    this.visual.setScale(C.scale).setVisible(false); this.visual.setName('ashen-broodmother');
+    this.artwork = new BroodmotherVisual(bossScene);
     const body = this.hurtbox.body as Phaser.Physics.Arcade.Body; body.setSize(108, 68); this.hurtbox.setSize(108, 68);
-    this.overlay = bossScene.add.graphics(); this.telegraph = bossScene.add.graphics(); this.effects = new PixelSkillVfx(bossScene);
+    this.telegraph = bossScene.add.graphics(); this.effects = new PixelSkillVfx(bossScene);
     this.nextAttack = bossScene.time.now + 1700;
     if (!bossScene.textures.exists('boss-venom')) {
       const g = bossScene.make.graphics({ x: 0, y: 0 }, false);
@@ -51,6 +54,7 @@ export class AshenBroodmother extends EmberSpider {
   public override applyKnockback(): void { /* Boss keeps its telegraphed trajectory. */ }
   public override takeDamage(damage: number, sourceX: number, sourceY: number): boolean {
     const result = super.takeDamage(damage, sourceX, sourceY);
+    if (result) this.artwork.hit(this.bossScene.time.now);
     if (this.currentHealth <= 0) this.clearHazards();
     return result;
   }
@@ -59,15 +63,16 @@ export class AshenBroodmother extends EmberSpider {
     this.visual.setDepth(Math.floor(this.visual.y));
     (this.hurtbox.body as Phaser.Physics.Arcade.Body).reset(this.visual.x, this.visual.y - 38);
     this.effects.update(time);
-    if (this.currentHealth <= 0) { this.overlay.clear(); this.telegraph.clear(); return; }
+    this.artwork.update(time, this.visual.x, this.visual.y, this.action, this.actionUntil, this.phase, this.currentHealth > 0, this.aim.x > 0);
+    if (this.currentHealth <= 0) { this.telegraph.clear(); return; }
     if (this.hero.currentHealth <= 0) { this.visual.setVelocity(0); this.clearHazards(); return; }
     const ratio = this.currentHealth / this.maxHealth;
     if (this.phase === 1 && ratio <= .65) {
-      this.phase = 2; this.effects.impact(this.visual.x, this.visual.y, 0xb28ce4, true);
+      this.phase = 2; this.effects.impact(this.visual.x, this.visual.y, 0xed963b, true);
       this.adds.push(this.summon(this.visual.x - 85, this.visual.y + 90), this.summon(this.visual.x + 85, this.visual.y + 90));
     }
-    if (this.phase === 2 && ratio <= .3) { this.phase = 3; this.effects.impact(this.visual.x, this.visual.y, 0xdf7999, true); }
-    this.drawArmor(time); this.updateHazards(time);
+    if (this.phase === 2 && ratio <= .3) { this.phase = 3; this.effects.impact(this.visual.x, this.visual.y, 0xffb13b, true); }
+    this.updateHazards(time);
     if (this.action === 'lunge') {
       for (const target of combatTargets(this.bossScene).all()) {
         if (!this.lungeHits.has(target.targetId) && this.bossScene.physics.overlap(this.hurtbox, target.physicsRoot)) {
@@ -112,16 +117,6 @@ export class AshenBroodmother extends EmberSpider {
   private finishAction(time: number): void {
     this.visual.setVelocity(0).play(EmberSpiderAnimation.Idle, true); this.action = 'idle';
     this.nextAttack = time + (this.phase === 3 ? 950 : 1450);
-  }
-  private drawArmor(time: number): void {
-    const g = this.overlay.clear().setPosition(Math.round(this.visual.x), Math.round(this.visual.y - 27)).setDepth(Math.floor(this.visual.y) + 1);
-    for (let i = -2; i <= 2; i++) {
-      const x = i * 12, y = -25 + Math.abs(i) * 5;
-      line(g, x, y + 8, x + i * 2, y - 8, 0x43394f, 5);
-      line(g, x, y + 6, x + i * 2, y - 7, this.phase === 3 ? 0xc48a9b : 0x8d799d, 2);
-    }
-    for (const x of [-13, 13]) pixel(g, x, -2, 3, this.phase === 3 ? 0xffa17d : 0xd594ba);
-    for (let i = 0; i < this.phase + 1; i++) pixel(g, Math.cos(i * 2 + time / 850) * 42, 15 - ((time / 100 + i * 7) % 25), 2, 0xb693d0, .6);
   }
   private drawTelegraph(): void {
     const g = this.telegraph.clear().setPosition(Math.round(this.visual.x), Math.round(this.visual.y)).setDepth(Math.floor(this.visual.y) - 2);
@@ -187,6 +182,6 @@ export class AshenBroodmother extends EmberSpider {
   public override destroy(): void {
     if (this.disposed) return; this.disposed = true;
     this.clearHazards(); this.collisions.forEach(c => c.destroy()); this.bolts.destroy(true); this.effects.destroy();
-    this.overlay.destroy(); this.telegraph.destroy(); super.destroy();
+    this.artwork.destroy(); this.telegraph.destroy(); super.destroy();
   }
 }

@@ -1,0 +1,68 @@
+{
+  "sourceSha256": "7121e9e4b4c756497c47f1ea3204d18e2fc928b6aac1ecc2e1c3f8b12d965bfa",
+  "canvas": [
+    192,
+    192
+  ],
+  "root": [
+    96,
+    168
+  ],
+  "alphaThreshold": 128,
+  "poses": {
+    "idle": {
+      "bbox": [
+        28,
+        935,
+        532,
+        1348
+      ],
+      "opaqueComponentPixels": 110598,
+      "size": [
+        176,
+        144
+      ],
+      "offset": [
+        8,
+        24
+      ],
+      "scale": 0.3492063492063492
+    },
+    "attack": {
+      "bbox": [
+        597,
+        959,
+        1102,
+        1371
+      ],
+      "opaqueComponentPixels": 91288,
+      "size": [
+        176,
+        144
+      ],
+      "offset": [
+        8,
+        24
+      ],
+      "scale": 0.3485148514851485
+    },
+    "phase": {
+      "bbox": [
+        32,
+        40,
+        1093,
+        966
+      ],
+      "opaqueComponentPixels": 453919,
+      "size": [
+        176,
+        154
+      ],
+      "offset": [
+        8,
+        14
+      ],
+      "scale": 0.16588124410933083
+    }
+  }
+}

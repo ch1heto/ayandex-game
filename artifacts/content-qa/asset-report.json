@@ -1,6 +1,15 @@
 {
   "icons": [
     {
+      "file": "assets\\equipment\\icons\\amulet.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
       "file": "assets\\equipment\\icons\\armor.png",
       "dimensions": [
         32,
@@ -10,7 +19,43 @@
       "status": "technical-pass"
     },
     {
+      "file": "assets\\equipment\\icons\\boots.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
       "file": "assets\\equipment\\icons\\bow.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\equipment\\icons\\helmet.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\equipment\\icons\\legs.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\equipment\\icons\\ring.png",
       "dimensions": [
         32,
         32
@@ -83,6 +128,24 @@
     },
     {
       "file": "assets\\ui\\skills\\arcane-meteor.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\heavy-slash.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": "binary",
+      "status": "technical-pass"
+    },
+    {
+      "file": "assets\\ui\\skills\\dodge.png",
       "dimensions": [
         32,
         32

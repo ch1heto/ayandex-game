@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { appendItemStats, appendComparison, statValue } from './ItemDetails';
-import { EMPTY_STATS, EQUIPMENT_CONFIG, ITEM_DEFINITIONS, RARITY_COLORS, equipmentBonuses, type EquipmentSlot, type ItemInstance, type ItemStats } from '../data/equipment';
+import { EMPTY_STATS, EQUIPMENT_CONFIG, EQUIPMENT_SLOTS, CLASS_WEAPONS, resolveEquipSlot, ITEM_DEFINITIONS, RARITY_COLORS, equipmentBonuses, type EquipmentSlot, type ItemInstance, type ItemStats } from '../data/equipment';
 import { PLAYER_CLASS_CONFIGS } from '../data/playerClasses';
 import { ADVANCED_SKILLS } from '../data/advancedSkills';
 import { SKILL_1_CONFIGS } from '../data/skills';
@@ -25,7 +25,9 @@ export class EquipmentPanels {
   private readonly summary = node('div', 'inventory-summary');
   private readonly tooltip = node('div', 'item-tooltip');
   private readonly sheet = node('div', 'character-sheet');
-  private readonly worn = node('div', 'inventory-equipped');
+  private readonly worn = node('div', 'paper-doll');
+  private readonly wornSlots = new Map<EquipmentSlot, HTMLButtonElement>();
+  private targetSlot?: EquipmentSlot;
   private readonly previewHost = node('div', 'player-preview-host');
   private readonly previewCaption = node('div', 'preview-caption');
   private readonly potions = node('div', 'inventory-potions');
@@ -52,7 +54,13 @@ export class EquipmentPanels {
     const bag = node('div', 'inventory-bag');
     bag.append(this.summary, this.grid, this.potions);
     const equipment = node('div', 'inventory-loadout');
-    equipment.append(node('h3', 'equipment-section-title', t('equipment.loadout')), this.previewHost, this.previewCaption, this.worn,
+    this.worn.append(this.previewHost);
+    for (const slot of EQUIPMENT_SLOTS) {
+      const button = node('button', 'equipment-slot slot-' + slot); button.type = 'button';
+      button.onclick = () => this.select(gameProgressService.snapshot.equipment[slot]?.id);
+      this.wornSlots.set(slot, button); this.worn.append(button);
+    }
+    equipment.append(node('h3', 'equipment-section-title', t('equipment.loadout')), this.worn, this.previewCaption,
       node('small', 'preview-note', t('equipment.skinOnly')));
     const layout = node('div', 'inventory-layout'); layout.append(bag, equipment, this.tooltip);
     this.inventory.append(layout, node('small', 'equipment-hint', t('hud.closeHint')));
@@ -103,19 +111,22 @@ export class EquipmentPanels {
           stack.append(glyph, node('span', '', t(`potion.${kind}`)), node('b', '', '×' + count), node('kbd', '', hotkey)); this.potions.append(stack);
         }
         this.previewCaption.textContent = t(`class.${classId}`) + ' · ' + getCharacterSkin(this.player.activeSkin).displayName;
-        this.worn.replaceChildren();
-        for (const slot of ['weapon', 'armor'] as const) {
+        for (const slot of EQUIPMENT_SLOTS) {
           const item = progress.equipment[slot];
-          const button = node('button', 'equipment-slot'); button.type = 'button';
+          const button = this.wornSlots.get(slot)!; button.replaceChildren();
           button.classList.toggle('selected', !!item && item.id === this.selected);
           button.style.setProperty('--rarity', item ? RARITY_COLORS[item.rarity] : '#65593e');
           button.append(node('span', 'equipment-slot-label', t(`equipment.${slot}`)));
           if (item) button.append(this.icon(item));
-          button.append(node('span', '', item ? t(`item.${item.kind}`) : t('equipment.empty')));
+          else {
+            const silhouette = document.createElement('img'); silhouette.className = 'equipment-icon empty-silhouette'; silhouette.alt = '';
+            silhouette.src = ITEM_ICONS[slot === 'weapon' ? CLASS_WEAPONS[classId] : slot === 'ring1' || slot === 'ring2' ? 'ring' : slot];
+            button.append(silhouette);
+          }
           if (item && this.inactive(item, classId)) button.append(node('small', 'stat-worse', t('equipment.inactive')));
           button.disabled = !item;
-          button.onclick = () => this.select(item?.id);
-          this.worn.append(button);
+          button.setAttribute('aria-pressed', String(!!item && item.id === this.selected));
+          button.setAttribute('aria-label', t(`equipment.${slot}`) + ': ' + (item ? t(`item.${item.kind}`) : t('equipment.empty')));
         }
         this.tooltip.replaceChildren();
         const item = [...progress.inventory, ...Object.values(progress.equipment)].find(item => item.id === this.selected);
@@ -136,9 +147,12 @@ export class EquipmentPanels {
     row('HP', Math.ceil(this.player.currentHealth) + ' / ' + this.player.maxHealth);
     row(t('hud.mana'), Math.floor(this.player.currentMana) + ' / ' + this.player.maxMana);
     row(t('character.baseDamage'), String(base.attackDamage)); row(t('character.finalDamage'), String(this.player.finalDamage));
+    row(t('stat.movementSpeed'), this.player.finalMoveSpeed.toFixed(1) + ' px/s');
+    row(t('stat.cooldownReduction'), statValue('cooldownReduction', 1 - this.player.cooldownMultiplier));
+    row(t('stat.manaRegen'), this.player.finalManaRegen.toFixed(2) + '/s');
     row(t('character.skin'), getCharacterSkin(this.player.activeSkin).displayName);
     stats.append(node('h3', 'equipment-section-title', t('equipment.loadout')));
-    for (const slot of ['weapon', 'armor'] as const) {
+    for (const slot of EQUIPMENT_SLOTS) {
       const item = p.equipment[slot];
       row(t(`equipment.${slot}`), item ? t(`item.${item.kind}`) + ' · ' + t(`rarity.${item.rarity}`) : t('equipment.empty'));
       if (item && this.inactive(item, classId)) stats.append(node('small', 'stat-worse', t('equipment.inactive')));
@@ -159,7 +173,7 @@ export class EquipmentPanels {
     this.sheet.append(stats, skills);
   }
 
-  private select(id?: string): void { this.selected = id; this.signature = ''; this.refresh(); }
+  private select(id?: string): void { this.selected = id; this.targetSlot = undefined; this.signature = ''; this.refresh(); }
   private inactive(item: ItemInstance, classId: PlayerClassId): boolean { return !!ITEM_DEFINITIONS[item.kind].classId && ITEM_DEFINITIONS[item.kind].classId !== classId; }
   private icon(item: ItemInstance): HTMLImageElement {
     const image = document.createElement('img'); image.src = ITEM_ICONS[item.kind]; image.alt = ''; image.className = 'equipment-icon'; return image;
@@ -172,19 +186,34 @@ export class EquipmentPanels {
   private renderTooltip(item: ItemInstance, classId: PlayerClassId): void {
     const title = node('h3', '', t(`item.${item.kind}`)); title.style.color = RARITY_COLORS[item.rarity];
     const definition = ITEM_DEFINITIONS[item.kind];
-    const equipped = gameProgressService.snapshot.equipment[definition.slot];
-    const isEquipped = equipped?.id === item.id;
-    this.tooltip.append(title, node('p', '', t(`rarity.${item.rarity}`)), node('p', '', t('equipment.level', { level: item.itemLevel })), node('p', '', t(`equipment.${definition.slot}`)));
+    const equipment = gameProgressService.snapshot.equipment;
+    const equippedSlot = EQUIPMENT_SLOTS.find(slot => equipment[slot]?.id === item.id);
+    const isEquipped = !!equippedSlot;
+    const targetSlot = resolveEquipSlot(item.kind, equipment, this.targetSlot);
+    this.tooltip.append(title, node('p', '', t(`rarity.${item.rarity}`)), node('p', '', t('equipment.level', { level: item.itemLevel })), node('p', '', t(`equipment.${equippedSlot ?? targetSlot ?? definition.slot}`)));
     if (definition.classId) this.tooltip.append(node('p', '', t('equipment.class') + ': ' + t(`class.${definition.classId}`)));
     appendItemStats(this.tooltip, item);
-    if (!isEquipped) appendComparison(this.tooltip, item, gameProgressService.snapshot.equipment, classId);
+    if (!isEquipped) {
+      if (item.kind === 'ring' && equipment.ring1 && equipment.ring2) {
+        const choices = node('div', 'ring-choices');
+        for (const slot of ['ring1', 'ring2'] as const) {
+          const button = node('button', 'equipment-action', t(`equipment.${slot}`)); button.type = 'button';
+          button.classList.toggle('selected', slot === this.targetSlot); button.setAttribute('aria-pressed', String(slot === this.targetSlot));
+          button.onclick = () => { this.targetSlot = slot; this.signature = ''; this.refresh(); }; choices.append(button);
+        }
+        this.tooltip.append(choices);
+      }
+      appendComparison(this.tooltip, item, equipment, classId, targetSlot);
+    }
     else this.tooltip.append(node('h4', '', t('equipment.worn')));
     const action = node('button', 'equipment-action', t(isEquipped ? 'equipment.unequip' : 'equipment.equip')); action.type = 'button';
     if (!isEquipped && this.inactive(item, classId)) { action.disabled = true; this.tooltip.append(node('small', 'stat-worse', t('equipment.wrongClass'))); }
+    if (!isEquipped && !targetSlot) action.disabled = true;
     action.onclick = () => {
-      if (isEquipped) { this.unequip(definition.slot, item); return; }
-      const result = gameProgressService.equip(item.id, classId);
-      if (result === 'missing') return;
+      if (!action.isConnected) return;
+      if (isEquipped) { this.unequip(equippedSlot!, item); return; }
+      const result = gameProgressService.equip(item.id, classId, targetSlot);
+      if (result === 'missing' || result === 'choose-slot') return;
       notify(this.scene, t(result === 'wrong-class' ? 'equipment.wrongClass' : 'equipment.equipped', { item: t(`item.${item.kind}`) }), 'equip', result === 'ok' ? RARITY_COLORS[item.rarity] : undefined);
       this.refresh();
     };

@@ -2,8 +2,10 @@ import type { PlayerClassId } from '../entities/player/playerTypes';
 
 export const ITEM_RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const;
 export type ItemRarity = typeof ITEM_RARITIES[number];
-export type EquipmentSlot = 'weapon' | 'armor';
-export type ItemKind = 'sword' | 'bow' | 'staff' | 'armor';
+export const EQUIPMENT_SLOTS = ['weapon', 'helmet', 'chest', 'legs', 'boots', 'amulet', 'ring1', 'ring2'] as const;
+export type EquipmentSlot = typeof EQUIPMENT_SLOTS[number];
+export type ItemKind = 'sword' | 'bow' | 'staff' | 'helmet' | 'chest' | 'legs' | 'boots' | 'amulet' | 'ring';
+export type Equipment = Partial<Record<EquipmentSlot, ItemInstance>>;
 export type ItemStats = { damage: number; maxHealth: number; maxMana: number; cooldownReduction: number; movementSpeed: number; manaRegen: number };
 export const AFFIXES = {
   vital: { stat: 'maxHealth', base: 5, perLevel: 2, cap: 10000 },
@@ -16,10 +18,11 @@ export const AFFIXES = {
 export type AffixId = keyof typeof AFFIXES;
 export type ItemAffix = { id: AffixId; value: number };
 export type ItemInstance = { id: string; kind: ItemKind; rarity: ItemRarity; itemLevel: number; stats: ItemStats; affixes?: ItemAffix[] };
-export type ItemDefinition = { slot: EquipmentSlot; classId?: PlayerClassId };
+export type ItemDefinition = { slot: EquipmentSlot; classId?: PlayerClassId; alternateSlot?: EquipmentSlot };
 export const ITEM_DEFINITIONS: Record<ItemKind, ItemDefinition> = {
   sword: { slot: 'weapon', classId: 'warrior' }, bow: { slot: 'weapon', classId: 'archer' },
-  staff: { slot: 'weapon', classId: 'mage' }, armor: { slot: 'armor' },
+  staff: { slot: 'weapon', classId: 'mage' }, helmet: { slot: 'helmet' }, chest: { slot: 'chest' },
+  legs: { slot: 'legs' }, boots: { slot: 'boots' }, amulet: { slot: 'amulet' }, ring: { slot: 'ring1', alternateSlot: 'ring2' },
 };
 export const CLASS_WEAPONS: Record<PlayerClassId, ItemKind> = { warrior: 'sword', archer: 'bow', mage: 'staff' };
 export const EMPTY_STATS: Readonly<ItemStats> = { damage: 0, maxHealth: 0, maxMana: 0, cooldownReduction: 0, movementSpeed: 0, manaRegen: 0 };
@@ -29,13 +32,39 @@ export const EQUIPMENT_CONFIG = {
   eliteLevelOffsets: [0, 0, 1, 1, 1], bossLevelOffsets: [0, 1, 1, 1, 1],
   rarityWeights: { normal: [60, 25, 10, 4, 1], elite: [15, 40, 30, 13, 2], boss: [0, 0, 72, 25, 3] },
   rarityMultipliers: [1, 1.3, 1.7, 2.2, 3], maxCooldownReduction: .2, maxMovementSpeed: .1, maxManaRegen: 3,
-  damageBase: 2, damagePerLevel: 1, healthBase: 8, healthPerLevel: 3, manaBase: 3, manaPerLevel: 2,
   pickupRadius: 23,
 } as const;
+
+type ItemBudget = {
+  base: Partial<Record<'damage' | 'maxHealth' | 'maxMana', readonly [number, number]>>;
+  utility?: 'cooldownReduction' | 'movementSpeed' | 'manaRegen';
+  utilityBase: number; affixPower: number; affixes: AffixId[];
+};
+const weaponBudget: ItemBudget = { base: { damage: [2, 1], maxMana: [1, .35] }, utility: 'cooldownReduction', utilityBase: .018, affixPower: .8, affixes: ['sharp', 'arcane', 'focused'] };
+// Full-set resources share the old armor budget; accessories trade raw defense for utility.
+export const ITEM_BUDGETS: Record<ItemKind, ItemBudget> = {
+  sword: weaponBudget, bow: weaponBudget, staff: weaponBudget,
+  chest: { base: { maxHealth: [5, 1.45] }, utilityBase: 0, affixPower: .5, affixes: ['vital', 'arcane'] },
+  helmet: { base: { maxHealth: [2, .5], maxMana: [1, .2] }, utility: 'cooldownReduction', utilityBase: .007, affixPower: .3, affixes: ['vital', 'arcane', 'focused', 'restoring'] },
+  legs: { base: { maxHealth: [3, .65] }, utility: 'movementSpeed', utilityBase: .006, affixPower: .35, affixes: ['vital', 'swift'] },
+  boots: { base: { maxHealth: [1, .25] }, utility: 'movementSpeed', utilityBase: .012, affixPower: .25, affixes: ['swift', 'arcane'] },
+  amulet: { base: { maxMana: [2, .8] }, utility: 'manaRegen', utilityBase: .12, affixPower: .35, affixes: ['arcane', 'focused', 'restoring', 'sharp'] },
+  ring: { base: { maxMana: [1, .2] }, utilityBase: 0, affixPower: .2, affixes: ['vital', 'arcane', 'sharp', 'focused', 'restoring'] },
+};
+export function itemSlots(kind: ItemKind): EquipmentSlot[] {
+  const def = ITEM_DEFINITIONS[kind];
+  return def.alternateSlot ? [def.slot, def.alternateSlot] : [def.slot];
+}
+export function resolveEquipSlot(kind: ItemKind, equipment: Equipment, chosen?: EquipmentSlot): EquipmentSlot | undefined {
+  const slots = itemSlots(kind);
+  if (chosen) return slots.includes(chosen) ? chosen : undefined;
+  return slots.find(slot => !equipment[slot]) ?? (slots.length === 1 ? slots[0] : undefined);
+}
+
 type RollOptions = { classId?: PlayerClassId; equipment?: Partial<Record<EquipmentSlot, ItemInstance>>; forceRelevant?: boolean; kind?: ItemKind; rarity?: ItemRarity; itemLevel?: number };
 const choose = <T>(values: readonly T[], random: () => number): T => values[Math.min(values.length - 1, Math.floor(random() * values.length))];
 export function isRelevant(item: Pick<ItemInstance, 'kind'>, classId: PlayerClassId): boolean {
-  return item.kind === 'armor' || item.kind === CLASS_WEAPONS[classId];
+  return !ITEM_DEFINITIONS[item.kind].classId || item.kind === CLASS_WEAPONS[classId];
 }
 export function rollItem(playerLevel: number, source: 'normal' | 'elite' | 'boss', random = Math.random, options: RollOptions = {}): ItemInstance {
   const weights = EQUIPMENT_CONFIG.rarityWeights[source];
@@ -47,10 +76,19 @@ export function rollItem(playerLevel: number, source: 'normal' | 'elite' | 'boss
   let kind: ItemKind;
   if (options.kind) kind = options.kind;
   else if (options.forceRelevant || random() < EQUIPMENT_CONFIG.relevantChance) {
-    const quality = (item?: ItemInstance): number => item && isRelevant(item, classId) ? item.itemLevel * EQUIPMENT_CONFIG.rarityMultipliers[ITEM_RARITIES.indexOf(item.rarity)] : 0;
-    const weapon = quality(options.equipment?.weapon), armor = quality(options.equipment?.armor);
-    const weaponChance = .5 + Math.max(-.15, Math.min(.15, (armor - weapon) / Math.max(1, playerLevel) * .1));
-    kind = random() < weaponChance ? CLASS_WEAPONS[classId] : 'armor';
+    const candidates: ItemKind[] = [CLASS_WEAPONS[classId], 'helmet', 'chest', 'legs', 'boots', 'amulet', 'ring'];
+    const weights = candidates.map(candidate => {
+      const slots = itemSlots(candidate);
+      const weakness = Math.max(...slots.map(slot => {
+        const item = options.equipment?.[slot];
+        if (!item || !isRelevant(item, classId)) return 2.2;
+        const quality = item.itemLevel * EQUIPMENT_CONFIG.rarityMultipliers[ITEM_RARITIES.indexOf(item.rarity)];
+        return 1 + Math.max(0, Math.min(1, (playerLevel - quality) / Math.max(1, playerLevel)));
+      }));
+      return weakness * (candidate === 'ring' ? 1.25 : 1);
+    });
+    let selection = random() * weights.reduce((sum, weight) => sum + weight, 0);
+    kind = candidates[weights.findIndex(weight => (selection -= weight) < 0)] ?? candidates[0];
   } else kind = choose((['sword', 'bow', 'staff'] as const).filter(value => value !== CLASS_WEAPONS[classId]), random);
   const offsets = source === 'boss' ? EQUIPMENT_CONFIG.bossLevelOffsets : source === 'elite' ? EQUIPMENT_CONFIG.eliteLevelOffsets : EQUIPMENT_CONFIG.itemLevelOffsets;
   const itemLevel = Math.max(1, Math.min(10000, options.itemLevel ?? playerLevel + choose(offsets, random)));
@@ -58,20 +96,22 @@ export function rollItem(playerLevel: number, source: 'normal' | 'elite' | 'boss
   const variance = () => .9 + random() * .2;
   const integer = (value: number) => Math.min(10000, Math.round(value * variance()));
   const stats = { ...EMPTY_STATS };
-  if (kind === 'armor') stats.maxHealth = integer((EQUIPMENT_CONFIG.healthBase + itemLevel * EQUIPMENT_CONFIG.healthPerLevel) * power);
-  else stats.damage = integer((EQUIPMENT_CONFIG.damageBase + itemLevel * EQUIPMENT_CONFIG.damagePerLevel) * power);
-  if (index > 0) stats.maxMana = integer((EQUIPMENT_CONFIG.manaBase + itemLevel * EQUIPMENT_CONFIG.manaPerLevel) * power);
+  const budget = ITEM_BUDGETS[kind];
+  for (const key of ['damage', 'maxHealth', 'maxMana'] as const) {
+    const base = budget.base[key];
+    if (base) stats[key] = integer((base[0] + base[1] * itemLevel) * power);
+  }
   if (index > 1) {
-    if (kind === 'armor') stats.movementSpeed = Math.min(.1, Number((.02 * (index - 1) * variance()).toFixed(4)));
-    else stats.cooldownReduction = Math.min(.2, Number((.03 * (index - 1) * variance()).toFixed(4)));
+    const utility = budget.utility;
+    if (utility) stats[utility] = Number((budget.utilityBase * (index - 1) * variance()).toFixed(4));
   }
   const count = index === 0 ? 0 : index === 1 ? (random() < EQUIPMENT_CONFIG.uncommonAffixChance ? 1 : 0) : index === 2 ? 1 : index === 3 ? (random() < EQUIPMENT_CONFIG.epicSecondAffixChance ? 2 : 1) : 2;
-  const available = Object.keys(AFFIXES) as AffixId[];
+  const available = [...budget.affixes];
   const affixes: ItemAffix[] = [];
   for (let i = 0; i < count; i++) {
     const id = choose(available, random); available.splice(available.indexOf(id), 1);
-    const def = AFFIXES[id], value = Math.min(def.cap, (def.base + def.perLevel * itemLevel) * variance());
-    affixes.push({ id, value: ['damage', 'maxHealth', 'maxMana'].includes(def.stat) ? Math.round(value) : Number(value.toFixed(4)) });
+    const def = AFFIXES[id], value = Math.min(def.cap, (def.base + def.perLevel * itemLevel) * budget.affixPower * variance());
+    affixes.push({ id, value: ['damage', 'maxHealth', 'maxMana'].includes(def.stat) ? Math.max(1, Math.round(value)) : Number(value.toFixed(4)) });
   }
   return { id: crypto.randomUUID(), kind, rarity: ITEM_RARITIES[index], itemLevel, stats, affixes };
 }
@@ -98,9 +138,11 @@ export function equipmentBonuses(equipment: Partial<Record<EquipmentSlot, ItemIn
   }
   return cappedStats(total);
 }
-export function equipmentComparison(item: ItemInstance, equipment: Partial<Record<EquipmentSlot, ItemInstance>>, classId: PlayerClassId): ItemStats {
+export function equipmentComparison(item: ItemInstance, equipment: Equipment, classId: PlayerClassId, targetSlot?: EquipmentSlot): ItemStats {
+  const slot = resolveEquipSlot(item.kind, equipment, targetSlot);
+  if (!slot || !isRelevant(item, classId)) return { ...EMPTY_STATS };
   const before = equipmentBonuses(equipment, classId);
-  const after = equipmentBonuses({ ...equipment, [ITEM_DEFINITIONS[item.kind].slot]: item }, classId);
+  const after = equipmentBonuses({ ...equipment, [slot]: item }, classId);
   const delta = { ...EMPTY_STATS };
   for (const key of Object.keys(delta) as (keyof ItemStats)[]) delta[key] = Number((after[key] - before[key]).toFixed(4));
   return delta;

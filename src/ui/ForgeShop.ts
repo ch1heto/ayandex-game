@@ -1,7 +1,7 @@
 import './forge-shop.css';
 import type Phaser from 'phaser';
 import type { PlayerCharacter } from '../entities/player/PlayerCharacter';
-import { EQUIPMENT_CONFIG, RARITY_COLORS, type ItemInstance } from '../data/equipment';
+import { EQUIPMENT_CONFIG, ITEM_DEFINITIONS, RARITY_COLORS, type ItemInstance } from '../data/equipment';
 import { buyPrice, sellPrice, ECONOMY_CONFIG, type PotionKind } from '../data/gameplayEconomy';
 import { gameProgressService } from '../systems/save/GameProgressService';
 import { notify } from '../systems/notifications/notifications';
@@ -33,6 +33,7 @@ export class ForgeShop {
     this.panel.setAttribute('role', 'dialog'); this.panel.setAttribute('aria-modal', 'true'); this.panel.setAttribute('aria-label', t('shop.title'));
     this.overlay.hidden = true; this.overlay.inert = true;
     this.overlay.addEventListener('pointerdown', event => event.stopPropagation());
+    this.content.addEventListener('wheel', event => event.stopPropagation(), { passive: true });
     scene.game.canvas.parentElement!.append(this.overlay);
     window.addEventListener('keydown', this.keydown);
   }
@@ -105,8 +106,13 @@ export class ForgeShop {
     const icon = node('img', 'equipment-icon'); icon.src = ITEM_ICONS[item.kind]; icon.alt = '';
     const title = node('h3', '', t(`item.${item.kind}`)); title.style.color = RARITY_COLORS[item.rarity];
     card.append(icon, title, node('small', '', t(`rarity.${item.rarity}`) + ' · ' + t('equipment.level', { level: item.itemLevel })));
+    const definition = ITEM_DEFINITIONS[item.kind];
+    card.append(node('small', '', t(`equipment.${definition.slot}`) + (definition.classId ? ' · ' + t(`class.${definition.classId}`) : '')));
     appendItemStats(card, item);
-    if (!selling) appendComparison(card, item, gameProgressService.snapshot.equipment, this.player.activeClass);
+    if (!selling) {
+      const compare = node('details', 'shop-comparison'); compare.append(node('summary', '', t('equipment.onEquip')));
+      appendComparison(compare, item, gameProgressService.snapshot.equipment, this.player.activeClass); card.append(compare);
+    }
     const cost = selling ? sellPrice(item) : buyPrice(item);
     const button = this.button(t(selling ? 'shop.sell' : 'shop.buy') + ' · ' + t('shop.price', { coins: cost }), () => {
       if (!selling) { this.result(gameProgressService.buyEquipment(item.id, this.player.activeClass)); return; }

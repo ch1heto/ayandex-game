@@ -4,8 +4,8 @@ import hashlib,json
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'artifacts/content-qa'
 OUT.mkdir(parents=True,exist_ok=True)
-files=list((ROOT/'assets/equipment/icons').glob('*.png'))+[ROOT/'assets/ui/skills'/name for name in ['whirlwind.png','seismic-slam.png','multishot.png','arrow-rain.png','frost-nova.png','arcane-meteor.png']]
-sheet=Image.new('RGB',(700,300),'#172320')
+files=list((ROOT/'assets/equipment/icons').glob('*.png'))+[ROOT/'assets/ui/skills'/name for name in ['whirlwind.png','seismic-slam.png','multishot.png','arrow-rain.png','frost-nova.png','arcane-meteor.png','heavy-slash.png','dodge.png']]
+sheet=Image.new('RGB',(700,((len(files)+4)//5)*150),'#172320')
 d=ImageDraw.Draw(sheet)
 findings=[]
 for i,path in enumerate(files):
@@ -30,4 +30,4 @@ for w,h in [(1280,720),(1366,768),(1920,1080)]:
     geometry.append({'viewport':[w,h],'scale':scale,'crop':[abs(ox),abs(oy)],'buttonBounds':boxes})
 report={'icons':findings,'menuOriginalHashMatches':True,'menuGeometry':geometry,'runtimeVisualQA':'NOT RUN: offline asset checks only'}
 (OUT/'asset-report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
-print('10 icons: 32x32, binary alpha. Menu SHA-256 identical. Three layout geometries pass; browser rendering NOT verified.')
+print(str(len(files))+' icons: 32x32, binary alpha. Menu SHA-256 identical. Three layout geometries pass; browser rendering NOT verified.')

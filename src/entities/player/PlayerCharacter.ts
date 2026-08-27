@@ -217,7 +217,14 @@ export class PlayerCharacter {
     if (!direction.lengthSq()) direction.set(this.aimX, this.aimY);
     direction.normalize().scale(DODGE_CONFIG.speed);
     this.dodgeX = direction.x; this.dodgeY = direction.y;
-    this.body.setVelocity(this.dodgeX, this.dodgeY); this.playIdle(); return true;
+    this.body.setVelocity(this.dodgeX, this.dodgeY);
+    if (this.classId === 'archer') {
+      this.facing = this.resolveMovementFacing(direction);
+      if (direction.x) this.horizontalFacing = direction.x < 0 ? 'left' : 'right';
+      this.state = 'move'; this.applyVisualState('walk'); this.applyHorizontalFlip(this.visualDirection);
+      this.visual.play(characterAnimationKey(this.skinId, 'walk', this.visualDirection), true);
+    } else this.playIdle();
+    return true;
   }
   public cancelDodge(): void { this.dodgeState.cancel(); }
   public get alive(): boolean { return this.root.active && this.health > 0; }
@@ -236,6 +243,8 @@ export class PlayerCharacter {
   public get currentMana(): number { return this.mana; }
   public get maxMana(): number { return PLAYER_RESOURCES.maxMana + this.bonuses.maxMana; }
   public get finalDamage(): number { return this.config.attackDamage + this.bonuses.damage; }
+  public get finalMoveSpeed(): number { return this.config.moveSpeed * (1 + this.bonuses.movementSpeed); }
+  public get finalManaRegen(): number { return PLAYER_RESOURCES.manaRegenPerSecond + this.bonuses.manaRegen; }
   public get cooldownMultiplier(): number { return 1 - this.bonuses.cooldownReduction; }
   public applyEquipment(bonuses: ItemStats): void {
     this.bonuses = { ...bonuses };

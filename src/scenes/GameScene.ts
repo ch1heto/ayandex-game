@@ -7,6 +7,7 @@ import { DUNGEON_CONFIG } from '../data/dungeon';
 import { AdvancedSkillSystem } from '../systems/skills/AdvancedSkillSystem';
 import { EquipmentLootSystem, preloadEquipmentIcons } from '../systems/loot/EquipmentLootSystem';
 import { notify } from '../systems/notifications/notifications';
+import { preloadBroodmotherVisual } from '../entities/enemies/BroodmotherVisual';
 import { createDungeonWorld, preloadDungeonWorld, type DungeonWorld } from '../dungeons/DungeonWorld';
 import { DungeonRun } from '../dungeons/DungeonRun';
 import { PixelPortal } from '../dungeons/PixelPortal';
@@ -92,7 +93,7 @@ export class GameScene extends Phaser.Scene {
     preloadAshvaleWorld(this);
     preloadRestorationAssets(this);
     preloadEquipmentIcons(this);
-    if (this.isDungeon) preloadDungeonWorld(this);
+    if (this.isDungeon) { preloadDungeonWorld(this); preloadBroodmotherVisual(this); }
   }
 
   public create(): void {

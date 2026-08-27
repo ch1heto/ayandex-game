@@ -1,12 +1,12 @@
 import { OBJECTIVE_TARGETS, XP_REWARDS, requiredXpForLevel, type EnemyKind } from '../../data/progression';
 import { PLAYER_RESOURCES } from '../../data/playerResources';
-import { CLASS_WEAPONS, EQUIPMENT_CONFIG, ITEM_DEFINITIONS, ITEM_RARITIES, rollItem, type EquipmentSlot, type ItemInstance } from '../../data/equipment';
+import { CLASS_WEAPONS, EQUIPMENT_CONFIG, EQUIPMENT_SLOTS, itemSlots, resolveEquipSlot, ITEM_DEFINITIONS, ITEM_RARITIES, rollItem, type EquipmentSlot, type ItemInstance } from '../../data/equipment';
 import { buyPrice, sellPrice, ECONOMY_CONFIG, type PotionKind } from '../../data/gameplayEconomy';
 import { finiteInt, object, validateItem } from '../equipment/itemValidation';
 import type { PlayerClassId } from '../../entities/player/playerTypes';
 
 export type GameProgress = {
-  version: 4;
+  version: 5;
   coins: number;
   buildings: { forge: boolean; infirmary: boolean };
   player: { level: number; xp: number; healthPotions: number; manaPotions: number; slimeKills: number; spiderKills: number };
@@ -17,9 +17,9 @@ export type GameProgress = {
   selection: { classId?: PlayerClassId; skinId?: string };
 };
 export type DefeatResult = { xpGained: number; levelsGained: number; completedObjective?: EnemyKind; progress: GameProgress };
-const STORAGE_KEY = 'ashvale-progress-v4';
+const STORAGE_KEY = 'ashvale-progress-v5';
 const DEFAULT_PROGRESS: GameProgress = {
-  version: 4, coins: 0, buildings: { forge: false, infirmary: false },
+  version: 5, coins: 0, buildings: { forge: false, infirmary: false },
   player: { level: 1, xp: 0, healthPotions: PLAYER_RESOURCES.initialPotionCount, manaPotions: PLAYER_RESOURCES.initialPotionCount, slimeKills: 0, spiderKills: 0 },
   shop: { generation: 0, stocks: {}, receipts: [] }, inventory: [], equipment: {}, milestones: { eliteKilled: false, dungeonEntered: false, bossFirstKill: false }, selection: {},
 };
@@ -32,10 +32,10 @@ export class GameProgressService {
   public load(): GameProgress {
     this.progress = structuredClone(DEFAULT_PROGRESS);
     try {
-      const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('ashvale-progress-v3') ?? localStorage.getItem('ashvale-progress-v2') ?? localStorage.getItem('ashvale-progress-v1');
+      const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('ashvale-progress-v4') ?? localStorage.getItem('ashvale-progress-v3') ?? localStorage.getItem('ashvale-progress-v2') ?? localStorage.getItem('ashvale-progress-v1');
       if (!raw) return this.snapshot;
       const candidate = object(JSON.parse(raw));
-      if (![1, 2, 3, 4].includes(Number(candidate.version))) return this.snapshot;
+      if (![1, 2, 3, 4, 5].includes(Number(candidate.version))) return this.snapshot;
       const player = object(candidate.player);
       const buildings = object(candidate.buildings);
       const milestones = object(candidate.milestones);
@@ -47,9 +47,10 @@ export class GameProgressService {
         ids.add(item.id); return item;
       };
       const equipment: GameProgress['equipment'] = {};
-      for (const slot of ['weapon', 'armor'] as const) {
-        const item = validateItem(object(candidate.equipment)[slot]);
-        if (item && ITEM_DEFINITIONS[item.kind].slot === slot) equipment[slot] = unique(item);
+      for (const slot of EQUIPMENT_SLOTS) {
+        const savedEquipment = object(candidate.equipment);
+        const item = validateItem(savedEquipment[slot] ?? (slot === 'chest' ? savedEquipment.armor : undefined));
+        if (item && itemSlots(item.kind).includes(slot)) equipment[slot] = unique(item);
       }
       const inventory = Array.isArray(candidate.inventory) ? candidate.inventory.map(unique).filter((item): item is ItemInstance => !!item).slice(0, EQUIPMENT_CONFIG.capacity) : [];
       const classId = selection.classId ?? candidate.selectedClass;
@@ -58,13 +59,13 @@ export class GameProgressService {
       const stocks: GameProgress['shop']['stocks'] = {};
       for (const owner of ['warrior', 'archer', 'mage'] as const) {
         const saved = object(shopInput.stocks)[owner];
-        if (Array.isArray(saved)) stocks[owner] = saved.slice(0, 3).map(unique).filter((item): item is ItemInstance => !!item);
+        if (Array.isArray(saved)) stocks[owner] = saved.slice(0, 6).map(unique).filter((item): item is ItemInstance => !!item);
       }
       this.progress = {
-        version: 4, inventory, equipment,
+        version: 5, inventory, equipment,
         shop: { generation: finiteInt(shopInput.generation, 0), stocks, receipts: Array.isArray(shopInput.receipts) ? shopInput.receipts.filter((v): v is string => typeof v === 'string' && v.length <= 80).slice(-64) : [] },
         milestones: { eliteKilled: milestones.eliteKilled === true, dungeonEntered: milestones.dungeonEntered === true, bossFirstKill: milestones.bossFirstKill === true },
-        selection: { classId: ['warrior', 'archer', 'mage'].includes(String(classId)) ? classId as PlayerClassId : undefined, skinId: typeof skinId === 'string' ? skinId.slice(0, 80) : undefined },
+        selection: { ...(['warrior', 'archer', 'mage'].includes(String(classId)) ? { classId: classId as PlayerClassId } : {}), ...(typeof skinId === 'string' ? { skinId: skinId.slice(0, 80) } : {}) },
         coins: finiteInt(candidate.coins, 0),
         buildings: { forge: buildings.forge === true, infirmary: buildings.infirmary === true },
         player: {
@@ -75,7 +76,7 @@ export class GameProgressService {
         },
       };
       this.normalizeXp();
-      if (candidate.version !== 4) this.persist();
+      if (candidate.version !== 5) this.persist();
     } catch (error) { console.warn('Local progress could not be loaded.', error); }
     this.revision += 1;
     return this.snapshot;
@@ -110,7 +111,7 @@ export class GameProgressService {
     if (!this.progress.buildings.forge) return [];
     if (!this.progress.shop.stocks[classId]) {
       const options = { classId, equipment: this.progress.equipment, forceRelevant: true };
-      this.progress.shop.stocks[classId] = [CLASS_WEAPONS[classId], 'armor', undefined].map(kind => {
+      this.progress.shop.stocks[classId] = [CLASS_WEAPONS[classId], 'chest', Math.random() < .5 ? 'helmet' : 'legs', 'boots', Math.random() < .5 ? 'amulet' : 'ring', undefined].map(kind => {
         const roll = Math.random();
         return rollItem(this.progress.player.level, 'normal', Math.random, { ...options,
           kind: kind as ItemInstance['kind'] | undefined, rarity: roll < ECONOMY_CONFIG.shopCommonChance ? 'common' : roll < ECONOMY_CONFIG.shopCommonChance + ECONOMY_CONFIG.shopUncommonChance ? 'uncommon' : 'rare',
@@ -169,16 +170,18 @@ export class GameProgressService {
     if ([...this.progress.inventory, ...Object.values(this.progress.equipment)].some(existing => existing.id === item.id)) return false;
     this.progress.inventory.push(structuredClone(item)); this.persist(); return true;
   }
-  public equip(id: string, classId: PlayerClassId): 'ok' | 'wrong-class' | 'missing' {
+  public equip(id: string, classId: PlayerClassId, targetSlot?: EquipmentSlot): 'ok' | 'wrong-class' | 'missing' | 'choose-slot' {
     const index = this.progress.inventory.findIndex(item => item.id === id);
     if (index < 0) return 'missing';
     const item = this.progress.inventory[index];
     const definition = ITEM_DEFINITIONS[item.kind];
     if (definition.classId && definition.classId !== classId) return 'wrong-class';
-    const old = this.progress.equipment[definition.slot];
+    const slot = resolveEquipSlot(item.kind, this.progress.equipment, targetSlot);
+    if (!slot) return 'choose-slot';
+    const old = this.progress.equipment[slot];
     this.progress.inventory.splice(index, 1);
     if (old) this.progress.inventory.splice(index, 0, old);
-    this.progress.equipment[definition.slot] = item;
+    this.progress.equipment[slot] = item;
     this.persist(); return 'ok';
   }
   public unequip(slot: EquipmentSlot): boolean {
